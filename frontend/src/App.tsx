@@ -197,8 +197,15 @@ export const App: React.FC = () => {
 
       const t = currentFrame * interval;
 
-      // 1. Manually update dashed stroke dashoffset coordinate positions
-      const dashedPaths = svg.querySelectorAll('.connection-line, .message-line');
+      // 1. Clone the SVG to avoid mutating the live animating document and to drop SMIL attributes
+      const svgClone = svg.cloneNode(true) as SVGSVGElement;
+
+      // 2. Remove all SMIL <animate> and <animateMotion> elements from clone to prevent them overriding static values
+      const anims = svgClone.querySelectorAll('animate, animateMotion');
+      anims.forEach(anim => anim.remove());
+
+      // 3. Manually update dashed stroke dashoffset coordinate positions on clone
+      const dashedPaths = svgClone.querySelectorAll('.connection-line, .message-line');
       dashedPaths.forEach(path => {
         const strokeDash = path.getAttribute('stroke-dasharray');
         if (strokeDash) {
@@ -207,27 +214,29 @@ export const App: React.FC = () => {
         }
       });
 
-      // 2. Manually calculate and apply point-along-path locations to dots
-      const dots = svg.querySelectorAll('.flow-dot[data-path-id]');
-      dots.forEach(dot => {
+      // 4. Manually calculate and apply point-along-path locations to dots on clone using live document paths for geometry math
+      const dotsClone = svgClone.querySelectorAll('.flow-dot[data-path-id]');
+      dotsClone.forEach(dot => {
         const pathId = dot.getAttribute('data-path-id');
         if (!pathId) return;
         const begin = dot.getAttribute('data-begin') || '0s';
-        const path = svg.getElementById(pathId) as SVGPathElement | null;
-        if (path) {
+        
+        // Find geometry on the live SVG document
+        const livePath = svg.getElementById(pathId) as SVGPathElement | null;
+        if (livePath) {
           try {
-            const len = path.getTotalLength();
+            const len = livePath.getTotalLength();
             if (currentData.type === 'sequence') {
               const dur = 1.5;
               const frac = (t % dur) / dur;
-              const pt = path.getPointAtLength(len * frac);
+              const pt = livePath.getPointAtLength(len * frac);
               dot.setAttribute('cx', String(pt.x));
               dot.setAttribute('cy', String(pt.y));
             } else {
               const startOffset = begin.startsWith('-1.25') ? 1.25 : 0;
               const dur = 2.5;
               const frac = ((t + startOffset) % dur) / dur;
-              const pt = path.getPointAtLength(len * frac);
+              const pt = livePath.getPointAtLength(len * frac);
               dot.setAttribute('cx', String(pt.x));
               dot.setAttribute('cy', String(pt.y));
             }
@@ -237,8 +246,8 @@ export const App: React.FC = () => {
         }
       });
 
-      // 3. Serialize and draw to canvas snapshot
-      const svgStr = getStyledSvgString(svg);
+      // 5. Serialize and draw to canvas snapshot
+      const svgStr = getStyledSvgString(svgClone);
       const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
 
