@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "postbuild": "rm -rf ../skills/draw-diagram/resources/* && cp -r dist/* ../skills/draw-diagram/resources/",
     "lint": "eslint .",
     "preview": "vite preview"
   },
