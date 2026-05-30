@@ -612,7 +612,7 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
             {/* Canvas Background */}
             <rect width="100%" height="100%" fill="#faf8f5" />
 
-            {/* Sequence Groups */}
+            {/* Sequence Groups Background (drawn first to sit behind lifelines/messages) */}
             {groups.map((group) => {
               if (!group.participants || group.participants.length === 0) return null;
               const xs = group.participants
@@ -631,30 +631,21 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
               const yStart = msgStart.y;
               const yEnd = msgEnd.y;
 
+              const theme = group.theme && THEMES[group.theme] ? THEMES[group.theme] : THEMES.gray;
+
               return (
-                <g key={`seq-group-${group.id}`}>
-                  <rect
-                    x={startX}
-                    y={yStart - 35}
-                    width={width}
-                    height={(yEnd - yStart) + 50}
-                    fill="none"
-                    stroke="#8e8a7e"
-                    strokeWidth="1.5"
-                    strokeDasharray="4 4"
-                    rx="3"
-                  />
-                  <text
-                    x={startX + 10}
-                    y={yStart - 22}
-                    fill="#6e6a5f"
-                    fontSize="11px"
-                    fontWeight="bold"
-                    style={{ fontFamily: "'Newsreader', Georgia, serif" }}
-                  >
-                    {group.label}
-                  </text>
-                </g>
+                <rect
+                  key={`seq-group-bg-${group.id}`}
+                  x={startX}
+                  y={yStart - 35}
+                  width={width}
+                  height={(yEnd - yStart) + 50}
+                  fill={theme.bg}
+                  fillOpacity={0.25}
+                  stroke={theme.border}
+                  strokeWidth="1.5"
+                  rx="4"
+                />
               );
             })}
 
@@ -869,6 +860,56 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
               }
             })}
 
+            {/* Sequence Group Labels/Tabs (Foreground layer to sit on top of activations/lifelines) */}
+            {groups.map((group) => {
+              if (!group.participants || group.participants.length === 0) return null;
+              const xs = group.participants
+                .map(pId => participantMap.get(pId)?.x)
+                .filter((x): x is number => x !== undefined);
+              if (xs.length === 0) return null;
+              const minX = Math.min(...xs);
+              const startX = minX - 40;
+
+              const msgStart = findMsg(group.messageFrom);
+              const msgEnd = findMsg(group.messageTo);
+              if (!msgStart || !msgEnd) return null;
+
+              const yStart = msgStart.y;
+              const theme = group.theme && THEMES[group.theme] ? THEMES[group.theme] : THEMES.gray;
+
+              const tabHeight = 18;
+              const tabText = group.label;
+              const charWidth = 6.2;
+              const tabWidth = Math.max(45, tabText.length * charWidth + 14);
+
+              return (
+                <g key={`seq-group-tab-${group.id}`}>
+                  {/* Small solid tab background to mask lines behind */}
+                  <rect
+                    x={startX}
+                    y={yStart - 35}
+                    width={tabWidth}
+                    height={tabHeight}
+                    fill={theme.bg}
+                    stroke={theme.border}
+                    strokeWidth="1.5"
+                    rx="3"
+                  />
+                  <text
+                    x={startX + 7}
+                    y={yStart - 35 + tabHeight / 2}
+                    fill={theme.text}
+                    fontSize="10.5px"
+                    fontWeight="bold"
+                    dominantBaseline="central"
+                    style={{ fontFamily: "'Newsreader', Georgia, serif" }}
+                  >
+                    {tabText}
+                  </text>
+                </g>
+              );
+            })}
+
             {/* 5. Draw Participant Headers */}
             {participants.map(part => {
               const theme = THEMES[part.theme] || THEMES.gray;
@@ -1045,8 +1086,9 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
             const height = (maxY - minY) + 55;
 
             const theme = group.theme && THEMES[group.theme] ? THEMES[group.theme] : null;
-            const strokeColor = theme ? theme.border : "#dad6d0";
-            const textColor = theme ? theme.text : "#6e6a5f";
+            const fillColor = theme ? theme.bg : "#efede8";
+            const strokeColor = theme ? theme.border : "#d3cecf";
+            const textColor = theme ? theme.text : "#6b645d";
 
             return (
               <g key={`flowchart-group-${group.id}`}>
@@ -1055,10 +1097,10 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                   y={y}
                   width={width}
                   height={height}
-                  fill="rgba(110, 106, 95, 0.02)"
+                  fill={fillColor}
+                  fillOpacity={0.25}
                   stroke={strokeColor}
                   strokeWidth="1.5"
-                  strokeDasharray="4 4"
                   rx="6"
                 />
                 <text
