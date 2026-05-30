@@ -73,15 +73,14 @@ function init() {
 function toggleAnimations() {
   animationsEnabled = !animationsEnabled;
   localStorage.setItem('animationsEnabled', animationsEnabled);
-  console.log('FlowCraft: Animations toggled. Enabled:', animationsEnabled);
   
   if (animationsEnabled) {
     btnToggleAnimation.classList.add('btn-active');
-    svgRender.classList.add('animations-active');
   } else {
     btnToggleAnimation.classList.remove('btn-active');
-    svgRender.classList.remove('animations-active');
   }
+  // Re-render to add/remove <animate> elements
+  renderDiagram();
 }
 
   // Helper to find a node/participant by ID
@@ -402,11 +401,7 @@ function renderDiagram() {
   canvasWrapper.style.width = `${width}px`;
   canvasWrapper.style.height = `${height}px`;
 
-  if (animationsEnabled) {
-    svgRender.classList.add('animations-active');
-  } else {
-    svgRender.classList.remove('animations-active');
-  }
+  // Animation state is handled per-element via SMIL <animate>
 
   // Setup default markers and styling elements
   let svgContent = `
@@ -447,12 +442,6 @@ function renderDiagram() {
         stroke: #6e6a5f;
         stroke-width: 1.5;
       }
-      .connection-line-animated {
-        /* Animated when svg.animations-active */
-      }
-      .animations-active .connection-line-animated {
-        animation: flow-dash 3s linear infinite;
-      }
       .connection-flow-overlay {
         fill: none;
         stroke: #191816;
@@ -461,16 +450,6 @@ function renderDiagram() {
         stroke-dasharray: 6 18;
         stroke-linecap: round;
         pointer-events: none;
-        display: none;
-      }
-      .animations-active .connection-flow-overlay {
-        display: block;
-        animation: flow-dash 3s linear infinite;
-      }
-      @keyframes flow-dash {
-        to {
-          stroke-dashoffset: -120px;
-        }
       }
     </style>
 
@@ -547,16 +526,27 @@ function renderDiagram() {
         isDashedOrDotted = true;
       }
 
-      const animateConn = conn.animate !== false;
-      const animClass = (animateConn && isDashedOrDotted) ? ' connection-line-animated' : '';
+      const animateConn = conn.animate !== false && animationsEnabled;
 
-      svgContent += `
-        <path d="${d}" class="connection-line${animClass}" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)" />
-      `;
+      if (animateConn && isDashedOrDotted) {
+        // Dashed/dotted: animate the dash offset directly on the line
+        svgContent += `
+          <path d="${d}" class="connection-line" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)">
+            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
+          </path>
+        `;
+      } else {
+        svgContent += `
+          <path d="${d}" class="connection-line" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)" />
+        `;
+      }
 
       if (animateConn && !isDashedOrDotted) {
+        // Solid line: add a flowing overlay with SMIL animate
         svgContent += `
-          <path d="${d}" class="connection-flow-overlay" />
+          <path d="${d}" class="connection-flow-overlay">
+            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
+          </path>
         `;
       }
     });
@@ -672,11 +662,7 @@ function renderSequence() {
   canvasWrapper.style.width = `${width}px`;
   canvasWrapper.style.height = `${height}px`;
 
-  if (animationsEnabled) {
-    svgRender.classList.add('animations-active');
-  } else {
-    svgRender.classList.remove('animations-active');
-  }
+  // Animation state is handled per-element via SMIL <animate>
 
   // Base setup
   let svgContent = `
@@ -735,12 +721,6 @@ function renderSequence() {
         fill: none;
         stroke-width: 1.5;
       }
-      .message-line-animated {
-        /* Animated when svg.animations-active */
-      }
-      .animations-active .message-line-animated {
-        animation: flow-dash 3s linear infinite;
-      }
       .message-flow-overlay {
         fill: none;
         stroke: #191816;
@@ -749,16 +729,6 @@ function renderSequence() {
         stroke-dasharray: 6 18;
         stroke-linecap: round;
         pointer-events: none;
-        display: none;
-      }
-      .animations-active .message-flow-overlay {
-        display: block;
-        animation: flow-dash 3s linear infinite;
-      }
-      @keyframes flow-dash {
-        to {
-          stroke-dashoffset: -120px;
-        }
       }
     </style>
 
@@ -814,8 +784,10 @@ function renderSequence() {
 
       const isSelf = msg.from === msg.to;
       const stroke = msg.lineType === 'dashed' ? '#8e8a7e' : '#6e6a5f';
-      const strokeDash = msg.lineType === 'dashed' ? 'stroke-dasharray="4 4"' : '';
+      const msgStrokeDash = msg.lineType === 'dashed' ? 'stroke-dasharray="4 4"' : '';
       const marker = msg.lineType === 'dashed' ? 'url(#arrow-thin)' : 'url(#arrow-solid)';
+      const msgIsDashed = msg.lineType === 'dashed';
+      const animateMsg = msg.animate !== false && animationsEnabled;
 
       if (isSelf) {
         // Self message loop
@@ -824,12 +796,22 @@ function renderSequence() {
         const y2 = msg.y + 25;
         const d = `M ${x} ${y1} C ${x + 40} ${y1}, ${x + 40} ${y2}, ${x} ${y2}`;
         
-        svgContent += `
-          <path d="${d}" class="message-line${animClass}" stroke="${stroke}" ${strokeDash} marker-end="${marker}" />
-        `;
-        if (animateMsg && !isDashedOrDotted) {
+        if (animateMsg && msgIsDashed) {
           svgContent += `
-            <path d="${d}" class="message-flow-overlay" />
+            <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}">
+              <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
+            </path>
+          `;
+        } else {
+          svgContent += `
+            <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}" />
+          `;
+        }
+        if (animateMsg && !msgIsDashed) {
+          svgContent += `
+            <path d="${d}" class="message-flow-overlay">
+              <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
+            </path>
           `;
         }
         svgContent += `
@@ -842,12 +824,22 @@ function renderSequence() {
         const endX = dx > 0 ? partB.x - 6 : partB.x + 6;
         const d = `M ${startX} ${msg.y} L ${endX} ${msg.y}`;
 
-        svgContent += `
-          <path d="${d}" class="message-line${animClass}" stroke="${stroke}" ${strokeDash} marker-end="${marker}" />
-        `;
-        if (animateMsg && !isDashedOrDotted) {
+        if (animateMsg && msgIsDashed) {
           svgContent += `
-            <path d="${d}" class="message-flow-overlay" />
+            <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}">
+              <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
+            </path>
+          `;
+        } else {
+          svgContent += `
+            <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}" />
+          `;
+        }
+        if (animateMsg && !msgIsDashed) {
+          svgContent += `
+            <path d="${d}" class="message-flow-overlay">
+              <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
+            </path>
           `;
         }
         svgContent += `
