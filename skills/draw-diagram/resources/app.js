@@ -8,6 +8,7 @@ const svgRender = document.getElementById('svg-render');
 const canvasWrapper = document.getElementById('canvas-wrapper');
 const btnExportSvg = document.getElementById('btn-export-svg');
 const btnExportPng = document.getElementById('btn-export-png');
+const btnExportGif = document.getElementById('btn-export-gif');
 const btnToggleAnimation = document.getElementById('btn-toggle-animation');
 const helpToggle = document.getElementById('help-toggle');
 const helpModal = document.getElementById('help-modal');
@@ -58,6 +59,7 @@ function init() {
   
   btnExportSvg.addEventListener('click', exportSvg);
   btnExportPng.addEventListener('click', exportPng);
+  btnExportGif.addEventListener('click', exportGif);
   btnToggleAnimation.addEventListener('click', toggleAnimations);
   
   helpToggle.addEventListener('click', () => {
@@ -444,11 +446,11 @@ function getConnectionEndpoints(nodeA, nodeB, fromOffset = [0, 0], toOffset = [0
 }
 
 // Main rendering engine
-function renderDiagram() {
+function renderDiagram(t = null) {
   if (!currentData) return;
 
   if (currentData.type === 'sequence') {
-    renderSequence();
+    renderSequence(t);
     return;
   }
 
@@ -605,13 +607,23 @@ function renderDiagram() {
       const animateDashedConn = animateConn && isDashedOrDotted && animateDashed;
       const animateSolidConn = animateConn && !isDashedOrDotted && animateSolid;
 
+      const isStaticExport = (t !== null);
+
       if (animateDashedConn) {
-        // Dashed/dotted: animate the dash offset directly on the line
-        svgContent += `
-          <path d="${d}" class="connection-line" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)">
-            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
-          </path>
-        `;
+        if (isStaticExport) {
+          const dashOffset = ((t % 1.5) / 1.5) * -24;
+          svgContent += `
+            <path d="${d}" class="connection-line" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)" stroke-dashoffset="${dashOffset}">
+            </path>
+          `;
+        } else {
+          // Dashed/dotted: animate the dash offset directly on the line
+          svgContent += `
+            <path d="${d}" class="connection-line" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)">
+              <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
+            </path>
+          `;
+        }
       } else {
         const needsId = animateSolidConn;
         svgContent += `
@@ -620,19 +632,26 @@ function renderDiagram() {
       }
 
       if (animateSolidConn) {
-        // Solid line: flowing dot particles along the path
-        svgContent += `
-          <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
-            <animateMotion dur="2.5s" repeatCount="indefinite" begin="0s">
-              <mpath href="#flow-path-${conn.from}-${conn.to}" />
-            </animateMotion>
-          </circle>
-          <circle r="2.5" fill="#8e8a7e" opacity="0.5" filter="url(#dot-glow)" class="flow-dot">
-            <animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.25s">
-              <mpath href="#flow-path-${conn.from}-${conn.to}" />
-            </animateMotion>
-          </circle>
-        `;
+        if (isStaticExport) {
+          svgContent += `
+            <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot" data-path-id="flow-path-${conn.from}-${conn.to}" data-begin="0s" />
+            <circle r="2.5" fill="#8e8a7e" opacity="0.5" filter="url(#dot-glow)" class="flow-dot" data-path-id="flow-path-${conn.from}-${conn.to}" data-begin="-1.25s" />
+          `;
+        } else {
+          // Solid line: flowing dot particles along the path
+          svgContent += `
+            <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
+              <animateMotion dur="2.5s" repeatCount="indefinite" begin="0s">
+                <mpath href="#flow-path-${conn.from}-${conn.to}" />
+              </animateMotion>
+            </circle>
+            <circle r="2.5" fill="#8e8a7e" opacity="0.5" filter="url(#dot-glow)" class="flow-dot">
+              <animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.25s">
+                <mpath href="#flow-path-${conn.from}-${conn.to}" />
+              </animateMotion>
+            </circle>
+          `;
+        }
       }
     });
   }
@@ -678,6 +697,24 @@ function renderDiagram() {
   });
 
   svgRender.innerHTML = svgContent;
+
+  if (t !== null) {
+    const dots = svgRender.querySelectorAll('.flow-dot[data-path-id]');
+    dots.forEach(dot => {
+      const pathId = dot.getAttribute('data-path-id');
+      const begin = dot.getAttribute('data-begin') || '0s';
+      const path = svgRender.getElementById(pathId);
+      if (path) {
+        const len = path.getTotalLength();
+        const startOffset = begin.startsWith('-1.25') ? 1.25 : 0;
+        const dur = 2.5; // Flowchart connection duration is 2.5s
+        const frac = ((t + startOffset) % dur) / dur;
+        const pt = path.getPointAtLength(len * frac);
+        dot.setAttribute('cx', pt.x);
+        dot.setAttribute('cy', pt.y);
+      }
+    });
+  }
 }
 
 // Export functions
@@ -736,7 +773,7 @@ function exportPng() {
 }
 
 // Sequence diagram rendering engine
-function renderSequence() {
+function renderSequence(t = null) {
   const width = currentData.width || 800;
   const height = currentData.height || 500;
 
@@ -770,6 +807,15 @@ function renderSequence() {
     </defs>
     
     <style>
+      .lifeline {
+        stroke: #e2dfd5;
+        stroke-width: 1.5;
+        stroke-dasharray: 4 4;
+      }
+      .participant-line {
+        stroke: #e2dfd5;
+        stroke-width: 2;
+      }
       .node-text {
         font-family: 'Newsreader', Georgia, serif;
         font-size: 14px;
@@ -785,30 +831,14 @@ function renderSequence() {
         text-anchor: middle;
         user-select: none;
       }
-      .message-text {
-        font-family: 'Inter', system-ui, sans-serif;
-        font-size: 11px;
-        font-weight: 500;
-        fill: #6e6a5f;
-        user-select: none;
-      }
       .node-shape {
         stroke-width: 1.5;
         cursor: grab;
         filter: drop-shadow(0px 2px 4px rgba(25, 24, 22, 0.02));
+        transition: transform 0.1s ease;
       }
       .node-shape:active {
         cursor: grabbing;
-      }
-      .lifeline {
-        stroke: #dcd9cf;
-        stroke-width: 1.5;
-        stroke-dasharray: 4 4;
-      }
-      .activation-bar {
-        fill: #f1ede4;
-        stroke: #d5d1c6;
-        stroke-width: 1.2;
       }
       .message-line {
         fill: none;
@@ -817,6 +847,13 @@ function renderSequence() {
       .flow-dot {
         pointer-events: none;
       }
+      .message-text {
+        font-family: 'Newsreader', Georgia, serif;
+        font-size: 13px;
+        font-style: italic;
+        fill: #6e6a5f;
+        user-select: none;
+      }
     </style>
 
     <!-- Canvas Background -->
@@ -824,40 +861,70 @@ function renderSequence() {
   `;
 
   const participants = currentData.participants || [];
-  const N = participants.length;
   const participantMap = new Map();
+  participants.forEach(p => participantMap.set(p.id, p));
 
-  // 1. Calculate horizontal X coordinates for participants
-  participants.forEach((part, idx) => {
-    if (part.x === undefined || part.x === null) {
-      part.x = Math.round(100 + idx * (width - 200) / Math.max(1, N - 1));
-    }
-    // Lock header y coordinate at 50
-    part.y = 50;
-    part.type = part.type || 'capsule'; // default header is capsule
-    part.width = part.width || 120;
-    part.height = part.height || 45;
-    participantMap.set(part.id, part);
-  });
+  const isStaticExport = (t !== null);
 
-  // 2. Draw Lifelines
+  // 1. Draw Lifelines
   participants.forEach(part => {
     svgContent += `
-      <line x1="${part.x}" y1="${part.y + part.height/2}" x2="${part.x}" y2="${height - 40}" class="lifeline" />
+      <line x1="${part.x}" y1="${part.y}" x2="${part.x}" y2="${height - 50}" class="lifeline" />
     `;
   });
 
-  // 3. Draw Activation Bars
+  // 2. Draw Activation boxes
   if (currentData.activations) {
     currentData.activations.forEach(act => {
       const part = participantMap.get(act.participant);
       if (!part) return;
       
-      const barW = 12;
-      const startY = act.start;
-      const endY = act.end;
+      const theme = THEMES[part.theme] || THEMES.gray;
+      const x = part.x - 6;
+      const w = 12;
+      const y = act.y;
+      const h = act.height;
+
       svgContent += `
-        <rect x="${part.x - barW/2}" y="${startY}" width="${barW}" height="${endY - startY}" rx="2" class="activation-bar" />
+        <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${theme.bg}" stroke="${theme.border}" stroke-width="1.5" rx="2" />
+      `;
+    });
+  }
+
+  // 3. Draw Notes
+  if (currentData.notes) {
+    currentData.notes.forEach(note => {
+      const part = participantMap.get(note.participant);
+      if (!part) return;
+
+      const theme = THEMES.gray; // Muted sand theme for notes
+      const w = note.width || 120;
+      const h = note.height || 45;
+      const x = part.x + (note.align === 'left' ? -(w + 20) : 20);
+      const y = note.y;
+
+      // Note background shape (paper note)
+      const noteEl = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="#eeece8" stroke="#dad6d0" stroke-width="1" />`;
+
+      // Multiline text support
+      const lines = (note.label || '').split(/\r?\n|\\n/);
+      let textEl = '';
+      if (lines.length > 1) {
+        const startDy = -(lines.length - 1) * 8 + 3;
+        textEl = `<text x="${x + w/2}" y="${y + h/2}" text-anchor="middle" fill="#6e6a64" class="message-text" style="font-size: 11px;">`;
+        lines.forEach((line, idx) => {
+          textEl += `<tspan x="${x + w/2}" dy="${idx === 0 ? startDy : 15}" text-anchor="middle">${line}</tspan>`;
+        });
+        textEl += `</text>`;
+      } else {
+        textEl = `<text x="${x + w/2}" y="${y + h/2}" text-anchor="middle" dominant-baseline="central" fill="#6e6a64" class="message-text" style="font-size: 11px;">${note.label}</text>`;
+      }
+
+      svgContent += `
+        <g class="note-group">
+          ${noteEl}
+          ${textEl}
+        </g>
       `;
     });
   }
@@ -887,11 +954,19 @@ function renderSequence() {
         const d = `M ${x} ${y1} C ${x + 40} ${y1}, ${x + 40} ${y2}, ${x} ${y2}`;
         
         if (animateDashedMsg) {
-          svgContent += `
-            <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}">
-              <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
-            </path>
-          `;
+          if (isStaticExport) {
+            const dashOffset = ((t % 1.5) / 1.5) * -24;
+            svgContent += `
+              <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}" stroke-dashoffset="${dashOffset}">
+              </path>
+            `;
+          } else {
+            svgContent += `
+              <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}">
+                <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
+              </path>
+            `;
+          }
         } else {
           const needsMsgId = animateSolidMsg;
           svgContent += `
@@ -899,13 +974,19 @@ function renderSequence() {
           `;
         }
         if (animateSolidMsg) {
-          svgContent += `
-            <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
-              <animateMotion dur="1.5s" repeatCount="indefinite">
-                <mpath href="#${msgPathId}" />
-              </animateMotion>
-            </circle>
-          `;
+          if (isStaticExport) {
+            svgContent += `
+              <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot" data-path-id="${msgPathId}" data-begin="0s" />
+            `;
+          } else {
+            svgContent += `
+              <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
+                <animateMotion dur="1.5s" repeatCount="indefinite">
+                  <mpath href="#${msgPathId}" />
+                </animateMotion>
+              </circle>
+            `;
+          }
         }
         svgContent += `
           <text x="${x + 45}" y="${y1 + 14}" class="message-text" text-anchor="start" dominant-baseline="central">${msg.label}</text>
@@ -918,11 +999,19 @@ function renderSequence() {
         const d = `M ${startX} ${msg.y} L ${endX} ${msg.y}`;
 
         if (animateDashedMsg) {
-          svgContent += `
-            <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}">
-              <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
-            </path>
-          `;
+          if (isStaticExport) {
+            const dashOffset = ((t % 1.5) / 1.5) * -24;
+            svgContent += `
+              <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}" stroke-dashoffset="${dashOffset}">
+              </path>
+            `;
+          } else {
+            svgContent += `
+              <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}">
+                <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
+              </path>
+            `;
+          }
         } else {
           const needsMsgId = animateSolidMsg;
           svgContent += `
@@ -930,13 +1019,19 @@ function renderSequence() {
           `;
         }
         if (animateSolidMsg) {
-          svgContent += `
-            <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
-              <animateMotion dur="1.5s" repeatCount="indefinite">
-                <mpath href="#${msgPathId}" />
-              </animateMotion>
-            </circle>
-          `;
+          if (isStaticExport) {
+            svgContent += `
+              <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot" data-path-id="${msgPathId}" data-begin="0s" />
+            `;
+          } else {
+            svgContent += `
+              <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
+                <animateMotion dur="1.5s" repeatCount="indefinite">
+                  <mpath href="#${msgPathId}" />
+                </animateMotion>
+              </circle>
+            `;
+          }
         }
         svgContent += `
           <text x="${(startX + endX) / 2}" y="${msg.y - 7}" class="message-text" text-anchor="middle" dominant-baseline="auto">${msg.label}</text>
@@ -948,8 +1043,8 @@ function renderSequence() {
   // 5. Draw Participant Headers
   participants.forEach(part => {
     const theme = THEMES[part.theme] || THEMES.gray;
-    const w = part.width;
-    const h = part.height;
+    const w = part.width || 120;
+    const h = part.height || 45;
 
     let nodeEl = '';
     const radius = h / 2;
@@ -977,7 +1072,119 @@ function renderSequence() {
   });
 
   svgRender.innerHTML = svgContent;
+
+  if (t !== null) {
+    const dots = svgRender.querySelectorAll('.flow-dot[data-path-id]');
+    dots.forEach(dot => {
+      const pathId = dot.getAttribute('data-path-id');
+      const begin = dot.getAttribute('data-begin') || '0s';
+      const path = svgRender.getElementById(pathId);
+      if (path) {
+        const len = path.getTotalLength();
+        const startOffset = 0; // Sequence message duration is 1.5s, starts at 0s
+        const dur = 1.5;
+        const frac = (t % dur) / dur;
+        const pt = path.getPointAtLength(len * frac);
+        dot.setAttribute('cx', pt.x);
+        dot.setAttribute('cy', pt.y);
+      }
+    });
+  }
 }
 
 // Initialize on DOM load
 window.addEventListener('DOMContentLoaded', init);
+
+function exportGif() {
+  if (!currentData) return;
+  
+  // Show loading indicator
+  const btn = document.getElementById('btn-export-gif');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = `<span class="status-icon" style="color: var(--text-primary)">●</span> Rendering GIF...`;
+  btn.disabled = true;
+  
+  const width = currentData.width || 800;
+  const height = currentData.height || 400;
+  
+  const duration = 3; // 3 seconds
+  const fps = 10; // 10 frames per second
+  const totalFrames = duration * fps;
+  const interval = 1 / fps; // 0.1s interval
+  
+  const frames = [];
+  let currentFrame = 0;
+  
+  // Render frame by frame
+  function captureNextFrame() {
+    if (currentFrame >= totalFrames) {
+      // Restore normal rendering with SMIL animations
+      renderDiagram();
+      
+      // Compile GIF using gifshot
+      gifshot.createGIF({
+        images: frames,
+        gifWidth: width,
+        gifHeight: height,
+        interval: interval,
+        numFrames: totalFrames,
+        progressCallback: (progress) => {
+          btn.innerHTML = `<span class="status-icon" style="color: var(--text-primary)">●</span> Compiling (${Math.round(progress * 100)}%)...`;
+        }
+      }, (obj) => {
+        if (!obj.error) {
+          const link = document.createElement('a');
+          link.href = obj.image;
+          link.download = `${activeFile.replace('.json', '')}.gif`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } else {
+          alert('Failed to generate GIF: ' + obj.errorMsg);
+        }
+        
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      });
+      return;
+    }
+    
+    // Calculate time for this frame
+    const t = currentFrame * interval;
+    
+    // Render static frame
+    renderDiagram(t);
+    
+    // Convert current svgRender state to an Image and draw to canvas
+    const svgStr = getStyledSvgString();
+    const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      
+      // Save frame data URL
+      frames.push(canvas.toDataURL('image/png'));
+      URL.revokeObjectURL(url);
+      
+      currentFrame++;
+      // Capture next frame asynchronously to let the DOM paint and avoid blocking the UI thread
+      setTimeout(captureNextFrame, 10);
+    };
+    img.onerror = (err) => {
+      console.error('Error loading image for frame:', err);
+      URL.revokeObjectURL(url);
+      currentFrame++;
+      setTimeout(captureNextFrame, 10);
+    };
+    img.src = url;
+  }
+  
+  // Start capture sequence
+  setTimeout(captureNextFrame, 50);
+}

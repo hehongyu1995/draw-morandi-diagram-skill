@@ -76,8 +76,8 @@
       "id": "submit",
       "type": "rect",
       "theme": "blue",
-      "x": 286,
-      "y": 587,
+      "x": 353,
+      "y": 278,
       "width": 140,
       "height": 60,
       "label": "提交申报表"

@@ -22,7 +22,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         # 2. Translate web UI assets to the configured resources directory
         if parsed_path.path in ['/', '', '/index.html']:
             return os.path.join(self.server.web_dir, 'index.html')
-        elif filename in ['app.js', 'styles.css']:
+        elif filename in ['app.js', 'styles.css', 'gifshot.min.js']:
             return os.path.join(self.server.web_dir, filename)
             
         # 3. Fall back to standard path translation

@@ -66,8 +66,8 @@
       "id": "dec_in",
       "type": "capsule",
       "theme": "red",
-      "x": 600,
-      "y": 740,
+      "x": 599,
+      "y": 753,
       "width": 140,
       "height": 45,
       "label": "Output Tokens\\n(shifted right)"
@@ -136,8 +136,8 @@
       "id": "dec_add_norm3",
       "type": "capsule",
       "theme": "gray",
-      "x": 602,
-      "y": 98,
+      "x": 599,
+      "y": 102,
       "width": 110,
       "height": 40,
       "label": "Add & Norm"
