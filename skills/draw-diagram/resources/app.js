@@ -410,6 +410,14 @@ function renderDiagram() {
       <marker id="arrow-solid" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
         <path d="M 1 2.5 L 7 5 L 1 7.5 Z" fill="#6e6a5f" stroke="#6e6a5f" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" />
       </marker>
+      <!-- Glow filter for flow dots -->
+      <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
     </defs>
     
     <style>
@@ -442,13 +450,7 @@ function renderDiagram() {
         stroke: #6e6a5f;
         stroke-width: 1.5;
       }
-      .connection-flow-overlay {
-        fill: none;
-        stroke: #191816;
-        opacity: 0.18;
-        stroke-width: 2.2;
-        stroke-dasharray: 6 18;
-        stroke-linecap: round;
+      .flow-dot {
         pointer-events: none;
       }
     </style>
@@ -536,17 +538,25 @@ function renderDiagram() {
           </path>
         `;
       } else {
+        const needsId = animateConn && !isDashedOrDotted;
         svgContent += `
-          <path d="${d}" class="connection-line" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)" />
+          <path d="${d}" class="connection-line" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)" ${needsId ? `id="flow-path-${conn.from}-${conn.to}"` : ''} />
         `;
       }
 
       if (animateConn && !isDashedOrDotted) {
-        // Solid line: add a flowing overlay with SMIL animate
+        // Solid line: flowing dot particles along the path
         svgContent += `
-          <path d="${d}" class="connection-flow-overlay">
-            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
-          </path>
+          <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
+            <animateMotion dur="2.5s" repeatCount="indefinite" begin="0s">
+              <mpath href="#flow-path-${conn.from}-${conn.to}" />
+            </animateMotion>
+          </circle>
+          <circle r="2.5" fill="#8e8a7e" opacity="0.5" filter="url(#dot-glow)" class="flow-dot">
+            <animateMotion dur="2.5s" repeatCount="indefinite" begin="-1.25s">
+              <mpath href="#flow-path-${conn.from}-${conn.to}" />
+            </animateMotion>
+          </circle>
         `;
       }
     });
@@ -674,6 +684,14 @@ function renderSequence() {
       <marker id="arrow-thin" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
         <path d="M 1 2.5 L 7 5 L 1 7.5" fill="none" stroke="#8e8a7e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />
       </marker>
+      <!-- Glow filter for flow dots -->
+      <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
     </defs>
     
     <style>
@@ -721,13 +739,7 @@ function renderSequence() {
         fill: none;
         stroke-width: 1.5;
       }
-      .message-flow-overlay {
-        fill: none;
-        stroke: #191816;
-        opacity: 0.18;
-        stroke-width: 2.2;
-        stroke-dasharray: 6 18;
-        stroke-linecap: round;
+      .flow-dot {
         pointer-events: none;
       }
     </style>
@@ -777,7 +789,7 @@ function renderSequence() {
 
   // 4. Draw Messages
   if (currentData.messages) {
-    currentData.messages.forEach(msg => {
+    currentData.messages.forEach((msg, msgIdx) => {
       const partA = participantMap.get(msg.from);
       const partB = participantMap.get(msg.to);
       if (!partA || !partB) return;
@@ -788,6 +800,7 @@ function renderSequence() {
       const marker = msg.lineType === 'dashed' ? 'url(#arrow-thin)' : 'url(#arrow-solid)';
       const msgIsDashed = msg.lineType === 'dashed';
       const animateMsg = msg.animate !== false && animationsEnabled;
+      const msgPathId = `msg-path-${msgIdx}`;
 
       if (isSelf) {
         // Self message loop
@@ -803,15 +816,18 @@ function renderSequence() {
             </path>
           `;
         } else {
+          const needsMsgId = animateMsg && !msgIsDashed;
           svgContent += `
-            <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}" />
+            <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}" ${needsMsgId ? `id="${msgPathId}"` : ''} />
           `;
         }
         if (animateMsg && !msgIsDashed) {
           svgContent += `
-            <path d="${d}" class="message-flow-overlay">
-              <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
-            </path>
+            <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
+              <animateMotion dur="1.5s" repeatCount="indefinite">
+                <mpath href="#${msgPathId}" />
+              </animateMotion>
+            </circle>
           `;
         }
         svgContent += `
@@ -831,15 +847,18 @@ function renderSequence() {
             </path>
           `;
         } else {
+          const needsMsgId = animateMsg && !msgIsDashed;
           svgContent += `
-            <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}" />
+            <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}" ${needsMsgId ? `id="${msgPathId}"` : ''} />
           `;
         }
         if (animateMsg && !msgIsDashed) {
           svgContent += `
-            <path d="${d}" class="message-flow-overlay">
-              <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
-            </path>
+            <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
+              <animateMotion dur="1.5s" repeatCount="indefinite">
+                <mpath href="#${msgPathId}" />
+              </animateMotion>
+            </circle>
           `;
         }
         svgContent += `
