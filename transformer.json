@@ -56,8 +56,8 @@
       "id": "enc_add_norm2",
       "type": "capsule",
       "theme": "gray",
-      "x": 266,
-      "y": 239,
+      "x": 262,
+      "y": 220,
       "width": 110,
       "height": 40,
       "label": "Add & Norm"

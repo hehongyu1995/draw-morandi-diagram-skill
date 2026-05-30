@@ -17,6 +17,9 @@ let draggedNodeId = null;
 let dragOffset = { x: 0, y: 0 };
 let activeFile = 'diagram.json';
 let animationsEnabled = localStorage.getItem('animationsEnabled') !== 'false';
+let bypassMargin = parseInt(localStorage.getItem('bypassMargin') || '15', 10);
+let animateDashed = localStorage.getItem('animateDashed') !== 'false';
+let animateSolid = localStorage.getItem('animateSolid') !== 'false';
 
 // Initialize App
 function init() {
@@ -27,6 +30,17 @@ function init() {
 
   // Setup Poll Loop to auto-sync modifications from workspace (AI edits)
   setInterval(pollDiagramJson, 1500);
+
+  // Initialize parameter inputs
+  const paramBypass = document.getElementById('param-bypass');
+  const paramBypassVal = document.getElementById('param-bypass-val');
+  const paramAnimateDashed = document.getElementById('param-animate-dashed');
+  const paramAnimateSolid = document.getElementById('param-animate-solid');
+
+  paramBypass.value = bypassMargin;
+  paramBypassVal.textContent = bypassMargin + 'px';
+  paramAnimateDashed.checked = animateDashed && animationsEnabled;
+  paramAnimateSolid.checked = animateSolid && animationsEnabled;
 
   // Initialize Animation Button State
   if (animationsEnabled) {
@@ -49,6 +63,44 @@ function init() {
   helpToggle.addEventListener('click', () => {
     const isVisible = helpModal.style.display === 'block';
     helpModal.style.display = isVisible ? 'none' : 'block';
+  });
+
+  // Parameter Change Listeners
+  paramBypass.addEventListener('input', (e) => {
+    bypassMargin = parseInt(e.target.value, 10);
+    paramBypassVal.textContent = bypassMargin + 'px';
+    localStorage.setItem('bypassMargin', bypassMargin);
+    renderDiagram();
+  });
+
+  paramAnimateDashed.addEventListener('change', (e) => {
+    animateDashed = e.target.checked;
+    localStorage.setItem('animateDashed', animateDashed);
+    
+    // Auto-sync global animation state
+    animationsEnabled = animateDashed || animateSolid;
+    localStorage.setItem('animationsEnabled', animationsEnabled);
+    if (animationsEnabled) {
+      btnToggleAnimation.classList.add('btn-active');
+    } else {
+      btnToggleAnimation.classList.remove('btn-active');
+    }
+    renderDiagram();
+  });
+
+  paramAnimateSolid.addEventListener('change', (e) => {
+    animateSolid = e.target.checked;
+    localStorage.setItem('animateSolid', animateSolid);
+    
+    // Auto-sync global animation state
+    animationsEnabled = animateDashed || animateSolid;
+    localStorage.setItem('animationsEnabled', animationsEnabled);
+    if (animationsEnabled) {
+      btnToggleAnimation.classList.add('btn-active');
+    } else {
+      btnToggleAnimation.classList.remove('btn-active');
+    }
+    renderDiagram();
   });
 
   // Handle outside click to close modal
@@ -79,6 +131,16 @@ function toggleAnimations() {
   } else {
     btnToggleAnimation.classList.remove('btn-active');
   }
+  
+  // Sync check boxes
+  animateDashed = animationsEnabled;
+  animateSolid = animationsEnabled;
+  localStorage.setItem('animateDashed', animateDashed);
+  localStorage.setItem('animateSolid', animateSolid);
+  
+  if (paramAnimateDashed) paramAnimateDashed.checked = animateDashed;
+  if (paramAnimateSolid) paramAnimateSolid.checked = animateSolid;
+  
   // Re-render to add/remove <animate> elements
   renderDiagram();
 }
@@ -495,7 +557,7 @@ function renderDiagram() {
             // Check if this node is vertically between the two endpoints
             if (nBot > minY && nTop < maxY) {
               const nodeEdgeX = side === 'left' ? (n.x - nw / 2) : (n.x + nw / 2);
-              const dist = Math.abs(nodeEdgeX - nodeA.x) + 15; // 15px clearance margin
+              const dist = Math.abs(nodeEdgeX - nodeA.x) + bypassMargin; // custom clearance margin
               if (dist > maxClearanceX) maxClearanceX = dist;
             }
           });
@@ -529,8 +591,10 @@ function renderDiagram() {
       }
 
       const animateConn = conn.animate !== false && animationsEnabled;
+      const animateDashedConn = animateConn && isDashedOrDotted && animateDashed;
+      const animateSolidConn = animateConn && !isDashedOrDotted && animateSolid;
 
-      if (animateConn && isDashedOrDotted) {
+      if (animateDashedConn) {
         // Dashed/dotted: animate the dash offset directly on the line
         svgContent += `
           <path d="${d}" class="connection-line" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)">
@@ -538,13 +602,13 @@ function renderDiagram() {
           </path>
         `;
       } else {
-        const needsId = animateConn && !isDashedOrDotted;
+        const needsId = animateSolidConn;
         svgContent += `
           <path d="${d}" class="connection-line" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)" ${needsId ? `id="flow-path-${conn.from}-${conn.to}"` : ''} />
         `;
       }
 
-      if (animateConn && !isDashedOrDotted) {
+      if (animateSolidConn) {
         // Solid line: flowing dot particles along the path
         svgContent += `
           <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
@@ -800,6 +864,8 @@ function renderSequence() {
       const marker = msg.lineType === 'dashed' ? 'url(#arrow-thin)' : 'url(#arrow-solid)';
       const msgIsDashed = msg.lineType === 'dashed';
       const animateMsg = msg.animate !== false && animationsEnabled;
+      const animateDashedMsg = animateMsg && msgIsDashed && animateDashed;
+      const animateSolidMsg = animateMsg && !msgIsDashed && animateSolid;
       const msgPathId = `msg-path-${msgIdx}`;
 
       if (isSelf) {
@@ -809,19 +875,19 @@ function renderSequence() {
         const y2 = msg.y + 25;
         const d = `M ${x} ${y1} C ${x + 40} ${y1}, ${x + 40} ${y2}, ${x} ${y2}`;
         
-        if (animateMsg && msgIsDashed) {
+        if (animateDashedMsg) {
           svgContent += `
             <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}">
               <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
             </path>
           `;
         } else {
-          const needsMsgId = animateMsg && !msgIsDashed;
+          const needsMsgId = animateSolidMsg;
           svgContent += `
             <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}" ${needsMsgId ? `id="${msgPathId}"` : ''} />
           `;
         }
-        if (animateMsg && !msgIsDashed) {
+        if (animateSolidMsg) {
           svgContent += `
             <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
               <animateMotion dur="1.5s" repeatCount="indefinite">
@@ -840,19 +906,19 @@ function renderSequence() {
         const endX = dx > 0 ? partB.x - 6 : partB.x + 6;
         const d = `M ${startX} ${msg.y} L ${endX} ${msg.y}`;
 
-        if (animateMsg && msgIsDashed) {
+        if (animateDashedMsg) {
           svgContent += `
             <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}">
               <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
             </path>
           `;
         } else {
-          const needsMsgId = animateMsg && !msgIsDashed;
+          const needsMsgId = animateSolidMsg;
           svgContent += `
             <path d="${d}" class="message-line" stroke="${stroke}" ${msgStrokeDash} marker-end="${marker}" ${needsMsgId ? `id="${msgPathId}"` : ''} />
           `;
         }
-        if (animateMsg && !msgIsDashed) {
+        if (animateSolidMsg) {
           svgContent += `
             <circle r="3" fill="#6e6a5f" opacity="0.7" filter="url(#dot-glow)" class="flow-dot">
               <animateMotion dur="1.5s" repeatCount="indefinite">

@@ -55,6 +55,29 @@
         </div>
       </div>
       
+      <!-- PARAMETER CONTROL PANEL -->
+      <div class="settings-panel">
+        <div class="settings-group">
+          <div class="settings-row">
+            <label for="param-bypass" class="settings-label">
+              <span>Bypass Offset (曲线绕行系数)</span>
+              <span id="param-bypass-val" class="settings-value">15px</span>
+            </label>
+            <input type="range" id="param-bypass" min="0" max="100" value="15" class="settings-slider">
+          </div>
+          <div class="settings-row flex-row">
+            <label class="settings-toggle-label">
+              <input type="checkbox" id="param-animate-dashed" checked>
+              <span>Dashed Flow (虚线动效)</span>
+            </label>
+            <label class="settings-toggle-label">
+              <input type="checkbox" id="param-animate-solid" checked>
+              <span>Solid Flow (实线动效)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      
       <div class="editor-container">
         <textarea id="json-editor" spellcheck="false"></textarea>
       </div>
