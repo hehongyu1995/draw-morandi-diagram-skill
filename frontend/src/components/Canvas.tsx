@@ -619,9 +619,9 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                 <g key={`seq-group-${group.id}`}>
                   <rect
                     x={startX}
-                    y={yStart - 25}
+                    y={yStart - 35}
                     width={width}
-                    height={(yEnd - yStart) + 40}
+                    height={(yEnd - yStart) + 50}
                     fill="none"
                     stroke="#8e8a7e"
                     strokeWidth="1.5"
@@ -630,7 +630,7 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                   />
                   <text
                     x={startX + 10}
-                    y={yStart - 12}
+                    y={yStart - 22}
                     fill="#6e6a5f"
                     fontSize="11px"
                     fontWeight="bold"

@@ -7,7 +7,7 @@
       "id": "user",
       "label": "User\nClient",
       "theme": "red",
-      "x": 120,
+      "x": 73,
       "y": 50,
       "type": "capsule",
       "width": 120,
@@ -27,7 +27,7 @@
       "id": "db",
       "label": "Database\nCluster",
       "theme": "green",
-      "x": 620,
+      "x": 782,
       "y": 50,
       "type": "capsule",
       "width": 120,
@@ -113,14 +113,21 @@
     {
       "id": "loop_signup",
       "label": "Loop: User Signup Flow (Until Success)",
-      "participants": ["user", "gateway", "db"],
+      "participants": [
+        "user",
+        "gateway",
+        "db"
+      ],
       "messageFrom": "msg_signup_req",
       "messageTo": "msg_signup_resp"
     },
     {
       "id": "db_transaction",
       "label": "Transaction: Save User Data",
-      "participants": ["gateway", "db"],
+      "participants": [
+        "gateway",
+        "db"
+      ],
       "messageFrom": "msg_db_begin",
       "messageTo": "msg_db_commit"
     }
