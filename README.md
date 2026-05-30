@@ -34,53 +34,72 @@ FLOWCR\FT 是一个轻量级、极具设计感的智能体/架构流程图绘制
 
 ```text
 draw_ws/
+├── frontend/                     # [NEW] React + TS 前端工程项目
+│   ├── src/                      # 前端源代码
+│   │   ├── components/           # UI 布局及 SVG/Canvas 渲染组件 (Header, Canvas, NodeShape)
+│   │   ├── store/                # appStore.ts Zustand 状态管理 (编辑器数据双向绑定及自动保存)
+│   │   ├── types.ts              # TypeScript 类型定义定义
+│   │   ├── constants.ts          # Morandi 预设配色主题
+│   │   ├── main.tsx              # 渲染入口
+│   │   └── index.css             # 全局样式系统
+│   ├── public/                   # 公共静态资源 (gifshot.min.js, icons.svg)
+│   ├── dist/                     # 编译打包产物目录 (静态托管文件夹，已检入 Git)
+│   ├── package.json              # 项目依赖及编译脚本 (build, dev)
+│   └── vite.config.ts            # Vite 配置文件 (内置 8000 端口反向代理规则)
 ├── skills/
 │   └── draw-diagram/
-│       ├── resources/
-│       │   ├── index.html        # Web 端 UI 结构
-│       │   ├── styles.css        # 精致的 Anthropic 纸质风样式表
-│       │   ├── app.js            # 图形绘制引擎、参数控制与 GIF 录制核心逻辑
-│       │   └── gifshot.min.js    # GIF 编码库（本地版，用于离线导出）
 │       └── scripts/
-│           └── server.py         # Python 预览服务器（自动管理文件列表并路由静态资源）
+│           └── server.py         # Python 预览与文件操作 API 服务器 (默认托管 frontend/dist)
 ├── decoder_only_llm.json         # 预设：Decoder-Only 大模型架构流程图
 ├── transformer.json              # 预设：经典 Transformer 编码-解码架构流程图
 ├── diagram.json                  # 预设：标准流程图模版
 ├── example_*.json                # 各种智能体拓扑 presets
-└── README.md                     # 说明文档（本文档）
+└── README.md                     # 说明文档 (本文档)
 ```
 
 ---
 
 ## 🔑 关键文件说明
 
-* **`skills/draw-diagram/resources/app.js`**
-  * 这是图表渲染的核心引擎。它包含了 `renderDiagram` 和 `renderSequence` 函数，负责解析节点和连线的 JSON 结构并输出为 SVG。
-  * 引入了基于 `path.getPointAtLength()` 的帧序列生成方法，可在指定时间 `t` 绘制出无 SMIL 依赖的静态连线与流动光点，是支持 GIF 导出的关键。
+* **`frontend/src/components/Canvas.tsx`**
+  * 这是图表渲染的核心引擎组件。它包含了流程图连线避让、序列图绘制的全部数学计算与 React JSX 声明式渲染逻辑。
+  * 内置了通过直接操纵 SVG DOM 节点来进行 30 帧 GIF 时间步模拟的高效录制循环，避免了重绘带来的卡顿。
 * **`skills/draw-diagram/scripts/server.py`**
   * 一个基于 Python `http.server` 的静态预览服务器。
-  * 支持自定义托管目录，自动识别并生成当前目录下的 `.json` 文件列表（以供前端下拉菜单选择切换），并支持文件的实时保存。
-* **`skills/draw-diagram/resources/gifshot.min.js`**
-  * 客户端 GIF 动图合成库，由 Yahoo! 开源。我们通过 Python 脚本下载并存储在本地，以确保在断网环境下 GIF 导出功能依然 100% 可用。
+  * 自动将静态资源翻译至 `frontend/dist/` 进行托管，同时支持 `/list` 列出工作区图表与 `/save` 接收前端双向绑定并持久化改动至本地 `.json`。
+* **`frontend/public/gifshot.min.js`**
+  * 本地离线版 GIF 合成库。在前端打包后会复制到 `dist/` 根目录下，以支持无网状态下的快速 GIF 导出。
 
 ---
 
 ## 🚀 启动与使用
 
-### 1. 运行本地预览服务器
-在项目根目录下，执行以下命令启动服务器：
+项目支持 **前端开发模式** 与 **生产运行模式**。
+
+### 1. 生产/运行模式 (End-User / Skill Consumer 模式)
+无需运行 `npm`，只需启动 Python 服务器，直接读取已编译好的 `frontend/dist`：
 ```bash
 python3 skills/draw-diagram/scripts/server.py --dir .
 ```
+启动后访问 `http://localhost:8000/` 即可。
 
-### 2. 访问预览页面
-打开浏览器访问：
-```
-http://localhost:8000/
-```
+### 2. 前端开发模式 (Developer 模式)
+若需要修改前端 React 源码并体验热更新 (HMR)：
+1. 启动 Python API 后端：
+   ```bash
+   python3 skills/draw-diagram/scripts/server.py --dir . --port 8000
+   ```
+2. 在另一个终端启动 Vite 开发服务器：
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+3. 访问 `http://localhost:5173/`。Vite 会将 `/list`、`/save` 及 `.json` 图表请求自动代理至 Python 8000 后端端口。
 
-### 3. 功能操作说明
-* **选择图表**：在页面左上角下拉菜单切换 `transformer.json` 或 `decoder_only_llm.json` 等。
-* **节点拖拽**：在右侧画布直接拖动任意卡片节点，左侧 JSON 的 `x`、`y` 坐标会实时发生更新。
-* **调节参数**：拖动左侧 **Bypass Offset** 滑块调整贝塞尔曲线的绕行幅度；勾选/取消 **Dashed Flow** 或 **Solid Flow** 控制动效的开关，它们会与顶部的 **Flow Animation** 按钮自动双向同步。
-* **导出动效**：点击 **Export GIF**，按钮将展示录制及合成进度，完成后自动下载 3 秒完美循环的动效 GIF。
+---
+
+## 🔑 功能操作说明
+* **选择图表**：在页面右上角下拉菜单切换图表 JSON 文件。
+* **节点拖拽**：在画布直接拖动卡片节点，拖拽完成（`mouseup`）后会自动更新 JSON 代码，并静默自动保存至磁盘。
+* **参数调节**：通过滑块控制曲线绕行幅度；使用动效复选框单独控制虚线/实线特效的开启。
+* **导出文件**：支持一键导出矢量 SVG、双倍高清 PNG，或导出 3 秒无限循环的 GIF 动图。
