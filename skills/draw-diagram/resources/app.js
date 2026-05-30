@@ -554,9 +554,20 @@ function renderDiagram() {
             const nh = n.type === 'circle' ? 50 : (n.height || 50);
             const nTop = n.y - nh / 2;
             const nBot = n.y + nh / 2;
+            
             // Check if this node is vertically between the two endpoints
             if (nBot > minY && nTop < maxY) {
-              const nodeEdgeX = side === 'left' ? (n.x - nw / 2) : (n.x + nw / 2);
+              const nodeMinX = n.x - nw / 2;
+              const nodeMaxX = n.x + nw / 2;
+              
+              // Only check nodes that horizontally overlap with the path's column area
+              const pathMinX = Math.min(nodeA.x, nodeB.x, x1, x2);
+              const pathMaxX = Math.max(nodeA.x, nodeB.x, x1, x2);
+              if (nodeMaxX < pathMinX || nodeMinX > pathMaxX) {
+                return;
+              }
+
+              const nodeEdgeX = side === 'left' ? nodeMinX : nodeMaxX;
               const dist = Math.abs(nodeEdgeX - nodeA.x) + bypassMargin; // custom clearance margin
               if (dist > maxClearanceX) maxClearanceX = dist;
             }
