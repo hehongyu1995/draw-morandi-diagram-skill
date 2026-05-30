@@ -479,26 +479,42 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
     const participantMap = new Map(participants.map(p => [p.id, p]));
     const groups: DiagramGroup[] = currentData.groups || [];
 
+    const messageGap = 55;
+    const startY = 120;
+    const calculatedMessages = (currentData.messages || []).map((msg, idx) => {
+      const y = msg.y !== undefined && msg.y !== null ? msg.y : (startY + idx * messageGap);
+      return { ...msg, y };
+    });
+
     const findMsg = (ref: string | number | undefined) => {
       if (ref === undefined || ref === null) return null;
-      if (typeof ref === 'number') return currentData.messages?.[ref] || null;
-      // If string, try to parse it as integer first in case it's a numeric string index
+      if (typeof ref === 'number') {
+        if (ref < 100) return calculatedMessages[ref] || null;
+        return { y: ref } as any;
+      }
       const parsedIdx = parseInt(ref, 10);
       if (!isNaN(parsedIdx) && String(parsedIdx) === String(ref)) {
-        return currentData.messages?.[parsedIdx] || null;
+        if (parsedIdx < 100) return calculatedMessages[parsedIdx] || null;
+        return { y: parsedIdx } as any;
       }
-      return currentData.messages?.find(m => m.id === ref) || null;
+      return calculatedMessages.find(m => m.id === ref) || null;
     };
+
+    let calculatedHeight = height;
+    if (calculatedMessages.length > 0) {
+      const lastMsgY = calculatedMessages[calculatedMessages.length - 1].y;
+      calculatedHeight = Math.max(height, lastMsgY + 80);
+    }
 
     return (
       <div className="canvas-container">
-        <div className="canvas-wrapper" style={{ width: `${width}px`, height: `${height}px` }}>
+        <div className="canvas-wrapper" style={{ width: `${width}px`, height: `${calculatedHeight}px` }}>
           <svg
             ref={svgRef}
             id="svg-render"
             width={width}
-            height={height}
-            viewBox={`0 0 ${width} ${height}`}
+            height={calculatedHeight}
+            viewBox={`0 0 ${width} ${calculatedHeight}`}
             onMouseDown={handleMouseDown}
           >
             <defs>
@@ -649,7 +665,7 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                 x1={part.x}
                 y1={part.y ?? 50}
                 x2={part.x}
-                y2={height - 50}
+                y2={calculatedHeight - 50}
                 className="lifeline"
               />
             ))}
@@ -660,13 +676,21 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
               if (!part) return null;
               const theme = THEMES[part.theme] || THEMES.gray;
               const x = (part.x ?? 0) - 6;
+              const yStart = findMsg(act.start ?? act.y)?.y ?? 100;
+              let heightVal = 50;
+              if (act.end !== undefined) {
+                const yEnd = findMsg(act.end)?.y ?? yStart;
+                heightVal = yEnd - yStart;
+              } else if (act.height !== undefined) {
+                heightVal = act.height;
+              }
               return (
                 <rect
                   key={`act-${idx}`}
                   x={x}
-                  y={act.y}
+                  y={yStart}
                   width={12}
-                  height={act.height}
+                  height={heightVal}
                   fill={theme.bg}
                   stroke={theme.border}
                   strokeWidth="1.5"
@@ -682,15 +706,16 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
               const w = note.width || 120;
               const h = note.height || 45;
               const x = (part.x ?? 0) + (note.align === 'left' ? -(w + 20) : 20);
-              const y = note.y;
+              const resolvedNoteMsg = findMsg(note.y);
+              const noteY = resolvedNoteMsg ? resolvedNoteMsg.y : (typeof note.y === 'number' ? note.y : 100);
 
               const lines = note.label.split(/\r?\n|\\n/);
 
               return (
                 <g key={`note-${idx}`} className="note-group">
-                  <rect x={x} y={y} width={w} height={h} rx={2} fill="#eeece8" stroke="#dad6d0" strokeWidth="1" />
+                  <rect x={x} y={noteY} width={w} height={h} rx={2} fill="#eeece8" stroke="#dad6d0" strokeWidth="1" />
                   {lines.length > 1 ? (
-                    <text x={x + w / 2} y={y + h / 2} textAnchor="middle" fill="#6e6a64" className="message-text" style={{ fontSize: '11px' }}>
+                    <text x={x + w / 2} y={noteY + h / 2} textAnchor="middle" fill="#6e6a64" className="message-text" style={{ fontSize: '11px' }}>
                       {lines.map((line, lidx) => (
                         <tspan key={lidx} x={x + w / 2} dy={lidx === 0 ? -(lines.length - 1) * 8 + 3 : 15} textAnchor="middle">
                           {line}
@@ -698,7 +723,7 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                       ))}
                     </text>
                   ) : (
-                    <text x={x + w / 2} y={y + h / 2} textAnchor="middle" dominantBaseline="central" fill="#6e6a64" className="message-text" style={{ fontSize: '11px' }}>
+                    <text x={x + w / 2} y={noteY + h / 2} textAnchor="middle" dominantBaseline="central" fill="#6e6a64" className="message-text" style={{ fontSize: '11px' }}>
                       {note.label}
                     </text>
                   )}
@@ -707,7 +732,7 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
             })}
 
             {/* 4. Draw Messages */}
-            {currentData.messages?.map((msg, msgIdx) => {
+            {calculatedMessages.map((msg, msgIdx) => {
               const partA = participantMap.get(msg.from);
               const partB = participantMap.get(msg.to);
               if (!partA || !partB) return null;

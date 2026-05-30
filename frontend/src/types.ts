@@ -37,15 +37,17 @@ export interface Participant {
 
 export interface Activation {
   participant: string;
-  y: number;
-  height: number;
+  y?: number;
+  height?: number;
+  start?: string | number;
+  end?: string | number;
 }
 
 export interface Message {
   id?: string;
   from: string;
   to: string;
-  y: number;
+  y?: number;
   label: string;
   lineType?: 'solid' | 'dashed';
   animate?: boolean;
@@ -53,7 +55,7 @@ export interface Message {
 
 export interface Note {
   participant: string;
-  y: number;
+  y: number | string;
   label: string;
   align?: 'left' | 'right';
   width?: number;
