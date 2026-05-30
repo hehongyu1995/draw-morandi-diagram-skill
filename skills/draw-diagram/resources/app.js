@@ -73,6 +73,7 @@ function init() {
 function toggleAnimations() {
   animationsEnabled = !animationsEnabled;
   localStorage.setItem('animationsEnabled', animationsEnabled);
+  console.log('FlowCraft: Animations toggled. Enabled:', animationsEnabled);
   
   if (animationsEnabled) {
     btnToggleAnimation.classList.add('btn-active');
@@ -449,7 +450,7 @@ function renderDiagram() {
       .connection-line-animated {
         /* Animated when svg.animations-active */
       }
-      svg.animations-active .connection-line-animated {
+      .animations-active .connection-line-animated {
         animation: flow-dash 3s linear infinite;
       }
       .connection-flow-overlay {
@@ -462,13 +463,13 @@ function renderDiagram() {
         pointer-events: none;
         display: none;
       }
-      svg.animations-active .connection-flow-overlay {
+      .animations-active .connection-flow-overlay {
         display: block;
         animation: flow-dash 3s linear infinite;
       }
       @keyframes flow-dash {
         to {
-          stroke-dashoffset: -120;
+          stroke-dashoffset: -120px;
         }
       }
     </style>
@@ -737,7 +738,7 @@ function renderSequence() {
       .message-line-animated {
         /* Animated when svg.animations-active */
       }
-      svg.animations-active .message-line-animated {
+      .animations-active .message-line-animated {
         animation: flow-dash 3s linear infinite;
       }
       .message-flow-overlay {
@@ -750,13 +751,13 @@ function renderSequence() {
         pointer-events: none;
         display: none;
       }
-      svg.animations-active .message-flow-overlay {
+      .animations-active .message-flow-overlay {
         display: block;
         animation: flow-dash 3s linear infinite;
       }
       @keyframes flow-dash {
         to {
-          stroke-dashoffset: -120;
+          stroke-dashoffset: -120px;
         }
       }
     </style>
