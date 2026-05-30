@@ -1,0 +1,138 @@
+{
+  "width": 850,
+  "height": 450,
+  "nodes": [
+    {
+      "id": "web_client",
+      "type": "rect",
+      "theme": "red",
+      "x": 150,
+      "y": 150,
+      "width": 120,
+      "height": 60,
+      "label": "Web Client"
+    },
+    {
+      "id": "mobile_client",
+      "type": "rect",
+      "theme": "red",
+      "x": 150,
+      "y": 280,
+      "width": 120,
+      "height": 60,
+      "label": "Mobile Client"
+    },
+    {
+      "id": "api_gateway",
+      "type": "rect",
+      "theme": "blue",
+      "x": 420,
+      "y": 150,
+      "width": 120,
+      "height": 60,
+      "label": "API Gateway"
+    },
+    {
+      "id": "auth_service",
+      "type": "rect",
+      "theme": "blue",
+      "x": 420,
+      "y": 280,
+      "width": 120,
+      "height": 60,
+      "label": "Auth Service"
+    },
+    {
+      "id": "user_db",
+      "type": "database",
+      "theme": "green",
+      "x": 690,
+      "y": 150,
+      "width": 110,
+      "height": 70,
+      "label": "User DB"
+    },
+    {
+      "id": "auth_db",
+      "type": "database",
+      "theme": "green",
+      "x": 690,
+      "y": 280,
+      "width": 110,
+      "height": 70,
+      "label": "Auth DB"
+    }
+  ],
+  "connections": [
+    {
+      "from": "web_client",
+      "to": "api_gateway",
+      "label": "1. API Request",
+      "lineType": "solid",
+      "curve": "bezier",
+      "fromOffset": [20, 0],
+      "toOffset": [-20, 0],
+      "animate": true
+    },
+    {
+      "from": "mobile_client",
+      "to": "api_gateway",
+      "label": "1. API Request",
+      "lineType": "solid",
+      "curve": "bezier",
+      "fromOffset": [20, 0],
+      "toOffset": [-20, 0],
+      "animate": true
+    },
+    {
+      "from": "api_gateway",
+      "to": "auth_service",
+      "label": "2. Verify Token",
+      "lineType": "solid",
+      "curve": "straight",
+      "fromOffset": [0, 20],
+      "toOffset": [0, -20],
+      "animate": false
+    },
+    {
+      "from": "auth_service",
+      "to": "auth_db",
+      "label": "3. Check session",
+      "lineType": "solid",
+      "curve": "bezier",
+      "fromOffset": [20, 0],
+      "toOffset": [-20, 0],
+      "animate": true
+    },
+    {
+      "from": "api_gateway",
+      "to": "user_db",
+      "label": "4. Query Details",
+      "lineType": "solid",
+      "curve": "bezier",
+      "fromOffset": [20, 0],
+      "toOffset": [-20, 0],
+      "animate": true
+    }
+  ],
+  "groups": [
+    {
+      "id": "client_layer",
+      "label": "Client Presentation Layer",
+      "nodeIds": ["web_client", "mobile_client"],
+      "theme": "red"
+    },
+    {
+      "id": "gateway_layer",
+      "label": "Gateway & Security Layer",
+      "nodeIds": ["api_gateway", "auth_service"],
+      "theme": "blue"
+    },
+    {
+      "id": "database_layer",
+      "label": "Data Persistence Layer",
+      "nodeIds": ["user_db", "auth_db"],
+      "theme": "green"
+    }
+  ]
+}
