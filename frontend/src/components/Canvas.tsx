@@ -818,12 +818,14 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
               const dy = y2 - y1;
               const hasOffset = fromOff[0] !== 0 || fromOff[1] !== 0 || toOff[0] !== 0 || toOff[1] !== 0;
 
+              let hasObstacles = false;
+              let maxClearanceX = Math.max(Math.abs(x1 - nodeA.x), Math.abs(x2 - nodeB.x));
+
               if (hasOffset && Math.abs(dy) > Math.abs(dx)) {
                 const minY = Math.min(y1, y2);
                 const maxY = Math.max(y1, y2);
                 const side = x1 < nodeA.x ? 'left' : 'right';
 
-                let maxClearanceX = Math.max(Math.abs(x1 - nodeA.x), Math.abs(x2 - nodeB.x));
                 nodes.forEach(n => {
                   const nw = n.type === 'circle' ? 50 : (n.width || 110);
                   const nh = n.type === 'circle' ? 50 : (n.height || 50);
@@ -840,12 +842,16 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                       return;
                     }
 
+                    hasObstacles = true;
                     const nodeEdgeX = side === 'left' ? nodeMinX : nodeMaxX;
                     const dist = Math.abs(nodeEdgeX - nodeA.x) + bypassMargin;
                     if (dist > maxClearanceX) maxClearanceX = dist;
                   }
                 });
+              }
 
+              if (hasOffset && Math.abs(dy) > Math.abs(dx) && hasObstacles) {
+                const side = x1 < nodeA.x ? 'left' : 'right';
                 const bowX = side === 'left' ? nodeA.x - maxClearanceX : nodeA.x + maxClearanceX;
                 d = `M ${x1} ${y1} C ${bowX} ${y1}, ${bowX} ${y2}, ${x2} ${y2}`;
               } else if (Math.abs(dx) >= Math.abs(dy)) {
