@@ -29,14 +29,14 @@ Use this skill to draw or generate highly aesthetic flowcharts, architecture dia
   * **Curvature Parameters**: Global curvature adjustments via the Sidebar slider. Per-connection overrides: `curvature` (both tangents), `fromCurvature` (start tangent), and `toCurvature` (end tangent) coefficients in JSON specs.
 * **Line Styles**: Solid (default), dashed (`lineType: "dashed"`), or dotted (`lineType: "dotted"`).
 * **Flow Animations**: Beautiful, direction-aware flowing dot overlays indicating control/data flow direction. Can be configured per connection or toggled globally.
-* **Diagram Group Overlay boundary boxes (Subgraphs/Containers)**: Dash-bordered container boxes that automatically wrap member nodes and calculate coordinates and sizes dynamically with a default padding layout.
+* **Diagram Group Overlay boundary boxes (Subgraphs/Containers)**: Solid desaturated themed-border container boxes with semi-transparent desaturated background fills (25% opacity) that automatically wrap member nodes and calculate coordinates and sizes dynamically with a default padding layout.
 * **Themes**: Predefined Morandi desaturated color themes (`red`, `green`, `blue`, `gray`).
 
 ### B. UML Sequence Diagrams (`type: "sequence"`)
 * **Participants**: Horizontally placed lifelines (automatically spaced if `x` coordinates are omitted).
-* **Activation Bars**: Highlight active execution segments on lifelines.
-* **Messages**: Horizontal asynchronous/synchronous calls, return calls, and self-loop arrows.
-* **Diagram Group Overlay boundary boxes (Combined Fragments/Loops)**: Labeled boundary frames wrapping vertical message sequences spanning across specified lifelines horizontally.
+* **Activation Bars**: Highlight active execution segments on lifelines (can anchor dynamically to message references instead of absolute heights).
+* **Messages**: Horizontal calls and return calls with automatic vertical spacing (autospacing) at 55px intervals (manual `y` placement is optional).
+* **Diagram Group Overlay boundary boxes (Combined Fragments/Loops)**: Boundary frames wrapping message sequences, featuring solid themed borders, 25% opacity background fills, and foreground label tabs to prevent lifeline and activation overlaps.
 * **Flow Animations**: Direction-aware flow overlays indicating sequential execution direction.
 
 ---
@@ -139,11 +139,11 @@ Set `"type": "sequence"` in the root object.
     { "id": "agent", "label": "Orchestrator\nAgent", "theme": "blue", "x": 320 }
   ],
   "activations": [
-    { "participant": "agent", "start": 180, "end": 360 }
+    { "participant": "agent", "start": "msg_prompt", "end": "msg_return" }
   ],
   "messages": [
-    { "id": "msg_prompt", "from": "user", "to": "agent", "y": 180, "label": "1. Prompt Request", "lineType": "solid", "animate": true },
-    { "id": "msg_return", "from": "agent", "to": "user", "y": 360, "label": "2. Return Result", "lineType": "dashed", "animate": true }
+    { "id": "msg_prompt", "from": "user", "to": "agent", "label": "1. Prompt Request", "lineType": "solid", "animate": true },
+    { "id": "msg_return", "from": "agent", "to": "user", "label": "2. Return Result", "lineType": "dashed", "animate": true }
   ],
   "groups": [
     {
@@ -151,7 +151,8 @@ Set `"type": "sequence"` in the root object.
       "label": "Until tests pass",
       "participants": ["user", "agent"],
       "messageFrom": "msg_prompt",
-      "messageTo": "msg_return"
+      "messageTo": "msg_return",
+      "theme": "gray"
     }
   ]
 }
@@ -162,11 +163,12 @@ Set `"type": "sequence"` in the root object.
   * `x`: Horizontal center position (autospaced if omitted).
 * **Activation Properties**:
   * `participant`: Target participant ID.
-  * `start`, `end`: Vertical `y` coordinates defining the active bar.
+  * `start`, `end`: Anchor references representing where the activation bar starts and ends. Can be a message ID string, a 0-indexed message index number, or an absolute Y coordinate fallback (number $\ge 100$).
+  * `y`, `height`: Optional legacy absolute properties.
 * **Message Properties**:
-  * `id`: Optional unique identifier for the message (string), useful for defining group bounds.
+  * `id`: Optional unique identifier for the message (string), useful for defining group bounds and anchoring activations/notes.
   * `from`, `to`: Participant IDs (set `from === to` for self-loop callback calls).
-  * `y`: Vertical placement coordinate.
+  * `y`: Optional vertical placement coordinate. If omitted, messages are autospaced sequentially at `55px` intervals starting from `120px`.
   * `label`: String label placed above the message arrow.
   * `lineType`: `"solid"` (default call) | `"dashed"` (returns).
   * `animate`: Optional boolean to enable/disable flowing animation on this message arrow (defaults to `true`).
@@ -176,6 +178,7 @@ Set `"type": "sequence"` in the root object.
   * `participants`: Array of participant IDs spanning the width of the group (string[]).
   * `messageFrom`: Start boundary message, specified as a message ID string or a 0-indexed number representing the message index in the messages array (string | number).
   * `messageTo`: End boundary message, specified as a message ID string or a 0-indexed number representing the message index in the messages array (string | number).
+  * `theme`: Optional desaturated theme override (`"red"` | `"green"` | `"blue"` | `"gray"`).
 
 ---
 
