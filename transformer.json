@@ -46,8 +46,8 @@
       "id": "enc_ffn",
       "type": "rect",
       "theme": "blue",
-      "x": 263,
-      "y": 335,
+      "x": 260,
+      "y": 333,
       "width": 140,
       "height": 50,
       "label": "Feed\\nForward"
@@ -107,7 +107,7 @@
       "type": "rect",
       "theme": "green",
       "x": 600,
-      "y": 350,
+      "y": 345,
       "width": 150,
       "height": 50,
       "label": "Cross-Attention\\n(Enc-Dec)"
@@ -312,7 +312,7 @@
         0
       ],
       "toOffset": [
-        -80,
+        -20,
         0
       ]
     }

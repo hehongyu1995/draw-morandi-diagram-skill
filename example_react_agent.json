@@ -24,8 +24,8 @@
       "id": "action",
       "type": "rect",
       "theme": "green",
-      "x": 513,
-      "y": 175,
+      "x": 510,
+      "y": 180,
       "width": 130,
       "height": 60,
       "label": "Action\n(Tool Decision)"
@@ -34,8 +34,8 @@
       "id": "tool",
       "type": "rect",
       "theme": "blue",
-      "x": 827,
-      "y": 176,
+      "x": 796,
+      "y": 181,
       "width": 130,
       "height": 60,
       "label": "Environment\n(Tool Execute)"
@@ -44,8 +44,8 @@
       "id": "observation",
       "type": "rect",
       "theme": "blue",
-      "x": 521,
-      "y": 384,
+      "x": 509,
+      "y": 380,
       "width": 130,
       "height": 60,
       "label": "Observation\n(Result)"
@@ -54,8 +54,8 @@
       "id": "done",
       "type": "capsule",
       "theme": "red",
-      "x": 515,
-      "y": 57,
+      "x": 511,
+      "y": 33,
       "width": 80,
       "height": 40,
       "label": "Final\nAnswer"
@@ -87,7 +87,7 @@
       "curve": "bezier",
       "fromOffset": [
         0,
-        15
+        20
       ],
       "toOffset": [
         0,

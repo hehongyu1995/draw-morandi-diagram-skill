@@ -1,0 +1,116 @@
+{
+  "width": 1500,
+  "height": 1000,
+  "nodes": [
+    {
+      "id": "query",
+      "type": "capsule",
+      "theme": "red",
+      "x": 117,
+      "y": 314,
+      "width": 100,
+      "height": 50,
+      "label": "User\nQuery"
+    },
+    {
+      "id": "embedding",
+      "type": "rect",
+      "theme": "green",
+      "x": 382,
+      "y": 315,
+      "width": 130,
+      "height": 60,
+      "label": "Embedding\nModel"
+    },
+    {
+      "id": "vector_db",
+      "type": "database",
+      "theme": "blue",
+      "x": 711,
+      "y": 313,
+      "width": 120,
+      "height": 70,
+      "label": "Vector\nDatabase"
+    },
+    {
+      "id": "docs",
+      "type": "file",
+      "theme": "blue",
+      "x": 710,
+      "y": 513,
+      "width": 110,
+      "height": 65,
+      "label": "Knowledge\nBase Docs"
+    },
+    {
+      "id": "llm",
+      "type": "rect",
+      "theme": "green",
+      "x": 1012,
+      "y": 314,
+      "width": 130,
+      "height": 60,
+      "label": "LLM\nGenerator"
+    },
+    {
+      "id": "response",
+      "type": "capsule",
+      "theme": "red",
+      "x": 1313,
+      "y": 314,
+      "width": 100,
+      "height": 50,
+      "label": "Answer\nResponse"
+    }
+  ],
+  "connections": [
+    {
+      "from": "query",
+      "to": "embedding",
+      "label": "1. Question",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "embedding",
+      "to": "vector_db",
+      "label": "2. Search Vector",
+      "lineType": "solid",
+      "curve": "straight",
+      "toOffset": [
+        -20,
+        0
+      ]
+    },
+    {
+      "from": "docs",
+      "to": "vector_db",
+      "label": "Upload Docs",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "fromOffset": [
+        0,
+        -20
+      ],
+      "toOffset": [
+        0,
+        20
+      ],
+      "animate": true
+    },
+    {
+      "from": "vector_db",
+      "to": "llm",
+      "label": "3. Context",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "llm",
+      "to": "response",
+      "label": "4. Answer",
+      "lineType": "solid",
+      "curve": "straight"
+    }
+  ]
+}

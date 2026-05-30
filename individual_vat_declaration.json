@@ -27,7 +27,7 @@
       "type": "rect",
       "theme": "blue",
       "x": 504,
-      "y": 56,
+      "y": 58,
       "width": 160,
       "height": 60,
       "label": "选择增值税申报表"
@@ -56,8 +56,8 @@
       "id": "exempt",
       "type": "rect",
       "theme": "green",
-      "x": 395,
-      "y": 217,
+      "x": 372,
+      "y": 214,
       "width": 160,
       "height": 60,
       "label": "免征增值税"
@@ -66,8 +66,8 @@
       "id": "calculate_tax",
       "type": "rect",
       "theme": "red",
-      "x": 736,
-      "y": 390,
+      "x": 740,
+      "y": 408,
       "width": 160,
       "height": 60,
       "label": "计算应纳税额"
@@ -76,8 +76,8 @@
       "id": "submit",
       "type": "rect",
       "theme": "blue",
-      "x": 375,
-      "y": 586,
+      "x": 373,
+      "y": 587,
       "width": 140,
       "height": 60,
       "label": "提交申报表"
@@ -86,8 +86,8 @@
       "id": "pay_tax",
       "type": "rect",
       "theme": "red",
-      "x": 741,
-      "y": 589,
+      "x": 739,
+      "y": 586,
       "width": 140,
       "height": 60,
       "label": "缴纳税款"
@@ -140,7 +140,11 @@
       "to": "calculate_tax",
       "lineType": "solid",
       "curve": "bezier",
-      "label": "否"
+      "label": "否",
+      "toOffset": [
+        0,
+        -20
+      ]
     },
     {
       "from": "exempt",
@@ -152,7 +156,11 @@
       "from": "calculate_tax",
       "to": "pay_tax",
       "lineType": "solid",
-      "curve": "straight"
+      "curve": "straight",
+      "fromOffset": [
+        0,
+        20
+      ]
     },
     {
       "from": "pay_tax",

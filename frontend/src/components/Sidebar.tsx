@@ -12,7 +12,9 @@ export const Sidebar: React.FC = () => {
     animateDashed,
     setAnimateDashed,
     animateSolid,
-    setAnimateSolid
+    setAnimateSolid,
+    defaultCurvature,
+    setDefaultCurvature
   } = useAppStore();
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -57,6 +59,22 @@ export const Sidebar: React.FC = () => {
               value={bypassMargin} 
               className="settings-slider"
               onChange={(e) => setBypassMargin(parseInt(e.target.value, 10))}
+            />
+          </div>
+          <div className="settings-row">
+            <label htmlFor="param-curvature" className="settings-label">
+              <span>Default Curvature (默认曲线曲率)</span>
+              <span id="param-curvature-val" className="settings-value">{defaultCurvature.toFixed(2)}</span>
+            </label>
+            <input 
+              type="range" 
+              id="param-curvature" 
+              min="0.05" 
+              max="0.80" 
+              step="0.05"
+              value={defaultCurvature} 
+              className="settings-slider"
+              onChange={(e) => setDefaultCurvature(parseFloat(e.target.value))}
             />
           </div>
           <div className="settings-row flex-row">

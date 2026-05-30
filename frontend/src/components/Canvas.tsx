@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { NodeShape } from './NodeShape';
 import { THEMES } from '../constants';
-import type { DiagramNode } from '../types';
+import type { DiagramNode, DiagramGroup } from '../types';
 
 interface CanvasProps {
   exportTime?: number | null;
@@ -20,6 +20,22 @@ function getNodeEdge(node: DiagramNode, direction: string) {
   if (direction === 'top') return { x: node.x, y: node.y - h / 2 };
   if (direction === 'bottom') return { x: node.x, y: node.y + h / 2 };
   return { x: node.x, y: node.y };
+}
+
+function getEdgeSideOfPoint(x: number, y: number, node: DiagramNode): 'top' | 'bottom' | 'left' | 'right' {
+  const w = node.type === 'circle' ? 50 : (node.width || 110);
+  const h = node.type === 'circle' ? 50 : (node.height || 50);
+
+  const distTop = Math.abs(y - (node.y - h / 2));
+  const distBottom = Math.abs(y - (node.y + h / 2));
+  const distLeft = Math.abs(x - (node.x - w / 2));
+  const distRight = Math.abs(x - (node.x + w / 2));
+
+  const minDist = Math.min(distTop, distBottom, distLeft, distRight);
+  if (minDist === distTop) return 'top';
+  if (minDist === distBottom) return 'bottom';
+  if (minDist === distLeft) return 'left';
+  return 'right';
 }
 
 function getConnectionEndpoints(
@@ -156,11 +172,12 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
     animateDashed,
     animateSolid,
     dragNode,
-    updateConnectionOffset
+    dragNodes,
+    updateConnectionOffset,
+    defaultCurvature
   } = useAppStore();
 
   const [draggedId, setDraggedId] = useState<string | null>(null);
-  const dragOffset = useRef({ x: 0, y: 0 });
 
   const [hoveredConnIdx, setHoveredConnIdx] = useState<number | null>(null);
   const [draggedAnchor, setDraggedAnchor] = useState<{
@@ -170,6 +187,14 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
     currentY: number;
   } | null>(null);
 
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+  const [marquee, setMarquee] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const baseSelection = useRef<Set<string>>(new Set());
+  const dragStartNodes = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const dragStartMouse = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const isMarqueeActive = useRef(false);
+  const marqueeStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
   React.useLayoutEffect(() => {
     if (exportTime !== null && svgRef.current) {
       updateStaticDots(svgRef.current, exportTime, currentData?.type === 'sequence');
@@ -177,7 +202,27 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
   }, [exportTime, currentData]);
 
   React.useEffect(() => {
-    if (!draggedId && !draggedAnchor) return;
+    const hasMarquee = marquee !== null;
+    if (!draggedId && !draggedAnchor && !hasMarquee) return;
+
+    const isNodeInMarquee = (node: any, minX: number, maxX: number, minY: number, maxY: number, isSequence: boolean) => {
+      const x = node.x ?? 0;
+      const y = isSequence ? (node.y ?? 50) : (node.y ?? 0);
+      let w = 120;
+      let h = 45;
+      if (!isSequence) {
+        w = node.type === 'circle' ? 50 : (node.width || 110);
+        h = node.type === 'circle' ? 50 : (node.height || 50);
+      } else {
+        w = node.width || 120;
+        h = node.height || 45;
+      }
+      const left = x - w / 2;
+      const right = x + w / 2;
+      const top = y - h / 2;
+      const bottom = y + h / 2;
+      return left >= minX && right <= maxX && top >= minY && bottom <= maxY;
+    };
 
     const handleMouseMove = (e: MouseEvent) => {
       const svg = svgRef.current;
@@ -188,13 +233,23 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
       const mouseY = e.clientY - rect.top;
 
       if (draggedId) {
-        const newX = Math.round(mouseX - dragOffset.current.x);
-        let newY = Math.round(mouseY - dragOffset.current.y);
+        const dx = mouseX - dragStartMouse.current.x;
+        const dy = mouseY - dragStartMouse.current.y;
 
-        if (currentData.type === 'sequence') {
-          newY = 50; // Lock vertical coordinate for sequence participants
+        const updates: { id: string; x: number; y: number }[] = [];
+        dragStartNodes.current.forEach((startPos, id) => {
+          let newX = Math.round(startPos.x + dx);
+          let newY = Math.round(startPos.y + dy);
+
+          if (currentData.type === 'sequence') {
+            newY = 50; // Lock vertical coordinate for sequence participants
+          }
+          updates.push({ id, x: newX, y: newY });
+        });
+
+        if (updates.length > 0) {
+          dragNodes(updates);
         }
-        dragNode(draggedId, newX, newY);
       } else if (draggedAnchor) {
         const conn = currentData.connections?.[draggedAnchor.connIdx];
         if (!conn) return;
@@ -220,12 +275,39 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
           currentX,
           currentY
         } : null);
+      } else if (isMarqueeActive.current) {
+        setMarquee({
+          startX: marqueeStart.current.x,
+          startY: marqueeStart.current.y,
+          currentX: mouseX,
+          currentY: mouseY
+        });
+
+        const minX = Math.min(marqueeStart.current.x, mouseX);
+        const maxX = Math.max(marqueeStart.current.x, mouseX);
+        const minY = Math.min(marqueeStart.current.y, mouseY);
+        const maxY = Math.max(marqueeStart.current.y, mouseY);
+
+        const isSequence = currentData.type === 'sequence';
+        const allNodes = isSequence ? (currentData.participants || []) : (currentData.nodes || []);
+
+        const newlySelected = new Set<string>();
+        allNodes.forEach(node => {
+          if (isNodeInMarquee(node, minX, maxX, minY, maxY, isSequence)) {
+            newlySelected.add(node.id);
+          }
+        });
+
+        const nextSelected = new Set(baseSelection.current);
+        newlySelected.forEach(id => nextSelected.add(id));
+        setSelectedNodeIds(nextSelected);
       }
     };
 
     const handleMouseUp = (e: MouseEvent) => {
       if (draggedId) {
         setDraggedId(null);
+        dragStartNodes.current.clear();
       }
 
       if (draggedAnchor) {
@@ -258,6 +340,11 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
         setDraggedAnchor(null);
         setHoveredConnIdx(null);
       }
+
+      if (isMarqueeActive.current) {
+        isMarqueeActive.current = false;
+        setMarquee(null);
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -267,37 +354,78 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [draggedId, draggedAnchor, dragNode, updateConnectionOffset, currentData, svgRef]);
+  }, [draggedId, draggedAnchor, marquee !== null, dragNode, dragNodes, updateConnectionOffset, currentData, svgRef]);
 
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!currentData) return;
     const target = e.target as SVGElement;
     const shape = target.closest('.node-shape');
-    if (!shape) return;
-    const id = shape.getAttribute('data-id');
-    if (!id) return;
+    
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
 
-    // Find node/participant
+    let clickedNodeId: string | null = null;
     let node: { x?: number; y?: number } | undefined;
-    if (currentData?.type === 'sequence') {
-      node = currentData.participants?.find(p => p.id === id);
-    } else {
-      node = currentData?.nodes?.find(n => n.id === id);
+    
+    if (shape) {
+      const id = shape.getAttribute('data-id');
+      if (id) {
+        clickedNodeId = id;
+        if (currentData?.type === 'sequence') {
+          node = currentData.participants?.find(p => p.id === id);
+        } else {
+          node = currentData?.nodes?.find(n => n.id === id);
+        }
+      }
     }
 
-    if (node) {
-      const rect = svgRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+    if (clickedNodeId && node) {
+      let nextSelected = new Set(selectedNodeIds);
+      if (e.shiftKey) {
+        if (nextSelected.has(clickedNodeId)) {
+          nextSelected.delete(clickedNodeId);
+        } else {
+          nextSelected.add(clickedNodeId);
+        }
+      } else {
+        if (!nextSelected.has(clickedNodeId)) {
+          nextSelected = new Set([clickedNodeId]);
+        }
+      }
+      setSelectedNodeIds(nextSelected);
 
-      const nodeY = currentData?.type === 'sequence' ? 50 : (node.y ?? 0);
-      const nodeX = node.x ?? 0;
+      dragStartMouse.current = { x: mouseX, y: mouseY };
 
-      dragOffset.current = {
-        x: mouseX - nodeX,
-        y: mouseY - nodeY
-      };
-      setDraggedId(id);
+      const startNodes = new Map<string, { x: number; y: number }>();
+      const isSequence = currentData.type === 'sequence';
+      const allNodes = isSequence ? (currentData.participants || []) : (currentData.nodes || []);
+
+      allNodes.forEach(n => {
+        if (nextSelected.has(n.id)) {
+          startNodes.set(n.id, {
+            x: n.x ?? 0,
+            y: isSequence ? 50 : (n.y ?? 0)
+          });
+        }
+      });
+      dragStartNodes.current = startNodes;
+      setDraggedId(clickedNodeId);
+    } else {
+      // Clicked on background
+      const nextSelected = e.shiftKey ? new Set(selectedNodeIds) : new Set<string>();
+      setSelectedNodeIds(nextSelected);
+      baseSelection.current = nextSelected;
+
+      isMarqueeActive.current = true;
+      marqueeStart.current = { x: mouseX, y: mouseY };
+      setMarquee({
+        startX: mouseX,
+        startY: mouseY,
+        currentX: mouseX,
+        currentY: mouseY
+      });
     }
     e.preventDefault();
   };
@@ -349,6 +477,18 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
   if (currentData.type === 'sequence') {
     const participants = currentData.participants || [];
     const participantMap = new Map(participants.map(p => [p.id, p]));
+    const groups: DiagramGroup[] = currentData.groups || [];
+
+    const findMsg = (ref: string | number | undefined) => {
+      if (ref === undefined || ref === null) return null;
+      if (typeof ref === 'number') return currentData.messages?.[ref] || null;
+      // If string, try to parse it as integer first in case it's a numeric string index
+      const parsedIdx = parseInt(ref, 10);
+      if (!isNaN(parsedIdx) && String(parsedIdx) === String(ref)) {
+        return currentData.messages?.[parsedIdx] || null;
+      }
+      return currentData.messages?.find(m => m.id === ref) || null;
+    };
 
     return (
       <div className="canvas-container">
@@ -455,6 +595,52 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
 
             {/* Canvas Background */}
             <rect width="100%" height="100%" fill="#faf8f5" />
+
+            {/* Sequence Groups */}
+            {groups.map((group) => {
+              if (!group.participants || group.participants.length === 0) return null;
+              const xs = group.participants
+                .map(pId => participantMap.get(pId)?.x)
+                .filter((x): x is number => x !== undefined);
+              if (xs.length === 0) return null;
+              const minX = Math.min(...xs);
+              const maxX = Math.max(...xs);
+              const startX = minX - 40;
+              const width = (maxX - minX) + 80;
+
+              const msgStart = findMsg(group.messageFrom);
+              const msgEnd = findMsg(group.messageTo);
+              if (!msgStart || !msgEnd) return null;
+
+              const yStart = msgStart.y;
+              const yEnd = msgEnd.y;
+
+              return (
+                <g key={`seq-group-${group.id}`}>
+                  <rect
+                    x={startX}
+                    y={yStart - 25}
+                    width={width}
+                    height={(yEnd - yStart) + 40}
+                    fill="none"
+                    stroke="#8e8a7e"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                    rx="3"
+                  />
+                  <text
+                    x={startX + 10}
+                    y={yStart - 12}
+                    fill="#6e6a5f"
+                    fontSize="11px"
+                    fontWeight="bold"
+                    style={{ fontFamily: "'Newsreader', Georgia, serif" }}
+                  >
+                    {group.label}
+                  </text>
+                </g>
+              );
+            })}
 
             {/* 1. Draw Lifelines */}
             {participants.map(part => (
@@ -679,9 +865,43 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                     data-id={part.id}
                   />
                   {renderLabel(part.label, part.x ?? 0, part.y ?? 50, theme.text)}
+                  {selectedNodeIds.has(part.id) && (
+                    <rect
+                      x={(part.x ?? 0) - w / 2 - 4}
+                      y={(part.y ?? 50) - h / 2 - 4}
+                      width={w + 8}
+                      height={h + 8}
+                      rx={rx + 4}
+                      fill="none"
+                      stroke="#5b8bba"
+                      strokeWidth="2"
+                      strokeDasharray="4 4"
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  )}
                 </g>
               );
             })}
+
+            {marquee && (() => {
+              const x = Math.min(marquee.startX, marquee.currentX);
+              const y = Math.min(marquee.startY, marquee.currentY);
+              const w = Math.abs(marquee.startX - marquee.currentX);
+              const h = Math.abs(marquee.startY - marquee.currentY);
+              return (
+                <rect
+                  x={x}
+                  y={y}
+                  width={w}
+                  height={h}
+                  fill="rgba(91, 139, 186, 0.15)"
+                  stroke="#5b8bba"
+                  strokeWidth="1.5"
+                  strokeDasharray="3 3"
+                  style={{ pointerEvents: 'none' }}
+                />
+              );
+            })()}
           </svg>
         </div>
       </div>
@@ -770,9 +990,71 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
           {/* Canvas Background */}
           <rect width="100%" height="100%" fill="#faf8f5" />
 
+          {/* Flowchart Groups */}
+          {(currentData.groups || []).map(group => {
+            if (!group.nodeIds || group.nodeIds.length === 0) return null;
+            
+            const groupNodes = group.nodeIds
+              .map(id => nodeMap.get(id))
+              .filter((n): n is DiagramNode => n !== undefined);
+            if (groupNodes.length === 0) return null;
+
+            const xValues = groupNodes.map(node => {
+              const w = node.type === 'circle' ? 50 : (node.width || 110);
+              return [node.x - w / 2, node.x + w / 2];
+            }).flat();
+
+            const yValues = groupNodes.map(node => {
+              const h = node.type === 'circle' ? 50 : (node.height || 50);
+              return [node.y - h / 2, node.y + h / 2];
+            }).flat();
+
+            const minX = Math.min(...xValues);
+            const maxX = Math.max(...xValues);
+            const minY = Math.min(...yValues);
+            const maxY = Math.max(...yValues);
+
+            const x = minX - 20;
+            const y = minY - 35;
+            const width = (maxX - minX) + 40;
+            const height = (maxY - minY) + 55;
+
+            const theme = group.theme && THEMES[group.theme] ? THEMES[group.theme] : null;
+            const strokeColor = theme ? theme.border : "#dad6d0";
+            const textColor = theme ? theme.text : "#6e6a5f";
+
+            return (
+              <g key={`flowchart-group-${group.id}`}>
+                <rect
+                  x={x}
+                  y={y}
+                  width={width}
+                  height={height}
+                  fill="rgba(110, 106, 95, 0.02)"
+                  stroke={strokeColor}
+                  strokeWidth="1.5"
+                  strokeDasharray="4 4"
+                  rx="6"
+                />
+                <text
+                  x={minX - 10}
+                  y={minY - 22}
+                  fill={textColor}
+                  fontSize="11px"
+                  fontWeight="600"
+                  style={{ fontFamily: "'Newsreader', Georgia, serif" }}
+                >
+                  {group.label}
+                </text>
+              </g>
+            );
+          })}
+
           {/* 1. Draw Nodes */}
           {nodes.map(node => {
             const theme = THEMES[node.theme] || THEMES.gray;
+            const w = node.type === 'circle' ? 50 : (node.width || 110);
+            const h = node.type === 'circle' ? 50 : (node.height || 50);
             return (
               <g key={`node-${node.id}`} className="node-group" id={`node-g-${node.id}`}>
                 <NodeShape
@@ -785,6 +1067,33 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                   height={node.height}
                 />
                 {renderLabel(node.label, node.x, node.y, theme.text)}
+                {selectedNodeIds.has(node.id) && (
+                  node.type === 'circle' ? (
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={25 + 4}
+                      fill="none"
+                      stroke="#5b8bba"
+                      strokeWidth="2"
+                      strokeDasharray="4 4"
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  ) : (
+                    <rect
+                      x={node.x - w / 2 - 4}
+                      y={node.y - h / 2 - 4}
+                      width={w + 8}
+                      height={h + 8}
+                      rx={node.type === 'capsule' ? (h + 8) / 2 : 7}
+                      fill="none"
+                      stroke="#5b8bba"
+                      strokeWidth="2"
+                      strokeDasharray="4 4"
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  )
+                )}
               </g>
             );
           })}
@@ -813,6 +1122,8 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
             }
 
             let d = '';
+            let mx = 0;
+            let my = 0;
             if (conn.curve === 'bezier') {
               const dx = x2 - x1;
               const dy = y2 - y1;
@@ -854,15 +1165,40 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                 const side = x1 < nodeA.x ? 'left' : 'right';
                 const bowX = side === 'left' ? nodeA.x - maxClearanceX : nodeA.x + maxClearanceX;
                 d = `M ${x1} ${y1} C ${bowX} ${y1}, ${bowX} ${y2}, ${x2} ${y2}`;
-              } else if (Math.abs(dx) >= Math.abs(dy)) {
-                const ctrlOffset = Math.max(40, Math.abs(dx) * 0.45);
-                d = `M ${x1} ${y1} C ${x1 + (dx > 0 ? ctrlOffset : -ctrlOffset)} ${y1}, ${x2 - (dx > 0 ? ctrlOffset : -ctrlOffset)} ${y2}, ${x2} ${y2}`;
+
+                mx = 0.125 * x1 + 0.375 * bowX + 0.375 * bowX + 0.125 * x2;
+                my = 0.125 * y1 + 0.375 * y1 + 0.375 * y2 + 0.125 * y2;
               } else {
-                const ctrlOffset = Math.max(40, Math.abs(dy) * 0.45);
-                d = `M ${x1} ${y1} C ${x1} ${y1 + (dy > 0 ? ctrlOffset : -ctrlOffset)}, ${x2} ${y2 - (dy > 0 ? ctrlOffset : -ctrlOffset)}, ${x2} ${y2}`;
+                const sideA = getEdgeSideOfPoint(x1, y1, nodeA);
+                const sideB = getEdgeSideOfPoint(x2, y2, nodeB);
+                const fromCurv = conn.fromCurvature ?? conn.curvature ?? defaultCurvature;
+                const toCurv = conn.toCurvature ?? conn.curvature ?? defaultCurvature;
+                const ctrlOffsetA = Math.max(20, Math.hypot(dx, dy) * fromCurv);
+                const ctrlOffsetB = Math.max(20, Math.hypot(dx, dy) * toCurv);
+
+                let cx1 = x1;
+                let cy1 = y1;
+                if (sideA === 'left') cx1 = x1 - ctrlOffsetA;
+                else if (sideA === 'right') cx1 = x1 + ctrlOffsetA;
+                else if (sideA === 'top') cy1 = y1 - ctrlOffsetA;
+                else if (sideA === 'bottom') cy1 = y1 + ctrlOffsetA;
+
+                let cx2 = x2;
+                let cy2 = y2;
+                if (sideB === 'left') cx2 = x2 - ctrlOffsetB;
+                else if (sideB === 'right') cx2 = x2 + ctrlOffsetB;
+                else if (sideB === 'top') cy2 = y2 - ctrlOffsetB;
+                else if (sideB === 'bottom') cy2 = y2 + ctrlOffsetB;
+
+                d = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
+
+                mx = 0.125 * x1 + 0.375 * cx1 + 0.375 * cx2 + 0.125 * x2;
+                my = 0.125 * y1 + 0.375 * cy1 + 0.375 * cy2 + 0.125 * y2;
               }
             } else {
               d = `M ${x1} ${y1} L ${x2} ${y2}`;
+              mx = (x1 + x2) / 2;
+              my = (y1 + y2) / 2;
             }
 
             let strokeDash = '';
@@ -973,6 +1309,36 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                   />
                 )}
 
+                {conn.label && (
+                  <g className="connection-label-group" style={{ pointerEvents: 'none' }}>
+                    <rect
+                      x={mx - (conn.label.length * 6.5 + 12) / 2}
+                      y={my - 9}
+                      width={conn.label.length * 6.5 + 12}
+                      height={18}
+                      rx={3}
+                      fill="#faf8f5"
+                      stroke="#dad6d0"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x={mx}
+                      y={my}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fill="#6e6a5f"
+                      style={{
+                        fontFamily: "'Newsreader', Georgia, serif",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        userSelect: "none"
+                      }}
+                    >
+                      {conn.label}
+                    </text>
+                  </g>
+                )}
+
                 {/* Endpoint Interactive Drag Handles */}
                 {isHovered && !isStaticExport && (
                   <>
@@ -1051,6 +1417,26 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                   />
                 ))}
               </g>
+            );
+          })()}
+
+          {marquee && (() => {
+            const x = Math.min(marquee.startX, marquee.currentX);
+            const y = Math.min(marquee.startY, marquee.currentY);
+            const w = Math.abs(marquee.startX - marquee.currentX);
+            const h = Math.abs(marquee.startY - marquee.currentY);
+            return (
+              <rect
+                x={x}
+                y={y}
+                width={w}
+                height={h}
+                fill="rgba(91, 139, 186, 0.15)"
+                stroke="#5b8bba"
+                strokeWidth="1.5"
+                strokeDasharray="3 3"
+                style={{ pointerEvents: 'none' }}
+              />
             );
           })()}
         </svg>

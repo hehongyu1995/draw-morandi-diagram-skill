@@ -1,21 +1,21 @@
 {
-  "width": 760,
-  "height": 300,
+  "width": 1000,
+  "height": 500,
   "nodes": [
     {
       "id": "in",
       "type": "circle",
       "theme": "red",
-      "x": 106,
-      "y": 148,
+      "x": 88,
+      "y": 240,
       "label": "In"
     },
     {
       "id": "router",
       "type": "rect",
       "theme": "green",
-      "x": 277,
-      "y": 148,
+      "x": 244,
+      "y": 239,
       "width": 110,
       "height": 70,
       "label": "LLM Call\nRouter"
@@ -24,8 +24,8 @@
       "id": "call1",
       "type": "rect",
       "theme": "green",
-      "x": 470,
-      "y": 90,
+      "x": 514,
+      "y": 117,
       "width": 110,
       "height": 50,
       "label": "LLM Call 1"
@@ -34,8 +34,8 @@
       "id": "call2",
       "type": "rect",
       "theme": "green",
-      "x": 470,
-      "y": 150,
+      "x": 512,
+      "y": 239,
       "width": 110,
       "height": 50,
       "label": "LLM Call 2"
@@ -44,8 +44,8 @@
       "id": "call3",
       "type": "rect",
       "theme": "green",
-      "x": 470,
-      "y": 210,
+      "x": 516,
+      "y": 371,
       "width": 110,
       "height": 50,
       "label": "LLM Call 3"
@@ -54,8 +54,8 @@
       "id": "out",
       "type": "capsule",
       "theme": "red",
-      "x": 678,
-      "y": 148,
+      "x": 788,
+      "y": 239,
       "width": 65,
       "height": 40,
       "label": "Out"
@@ -74,15 +74,27 @@
       "lineType": "solid",
       "curve": "bezier",
       "fromOffset": [
-        0,
-        -25
+        20,
+        0
+      ],
+      "toOffset": [
+        -20,
+        0
       ]
     },
     {
       "from": "router",
       "to": "call2",
       "lineType": "dotted",
-      "curve": "straight"
+      "curve": "straight",
+      "toOffset": [
+        -20,
+        0
+      ],
+      "fromOffset": [
+        20,
+        0
+      ]
     },
     {
       "from": "router",
@@ -90,8 +102,8 @@
       "lineType": "dashed",
       "curve": "bezier",
       "fromOffset": [
-        0,
-        25
+        20,
+        0
       ]
     },
     {
@@ -110,7 +122,11 @@
       "from": "call3",
       "to": "out",
       "lineType": "dashed",
-      "curve": "bezier"
+      "curve": "bezier",
+      "toOffset": [
+        -20,
+        0
+      ]
     }
   ]
 }

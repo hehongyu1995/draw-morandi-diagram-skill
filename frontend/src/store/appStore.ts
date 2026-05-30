@@ -13,9 +13,11 @@ interface AppState {
   jsonStatus: { isValid: boolean; message: string };
   isExportingGif: boolean;
   gifProgress: number;
+  defaultCurvature: number;
   
   // Actions
   init: () => Promise<void>;
+  setDefaultCurvature: (val: number) => void;
   setActiveFile: (filename: string) => Promise<void>;
   setBypassMargin: (val: number) => void;
   setAnimateDashed: (val: boolean) => void;
@@ -23,6 +25,7 @@ interface AppState {
   setAnimationsEnabled: (val: boolean) => void;
   updateEditorText: (text: string) => void;
   dragNode: (nodeId: string, x: number, y: number) => void;
+  dragNodes: (updates: { id: string; x: number; y: number }[]) => void;
   saveToServer: (data: DiagramSpec) => Promise<void>;
   setIsExportingGif: (val: boolean) => void;
   setGifProgress: (val: number) => void;
@@ -43,6 +46,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   jsonStatus: { isValid: true, message: 'Ready' },
   isExportingGif: false,
   gifProgress: 0,
+  defaultCurvature: parseFloat(localStorage.getItem('defaultCurvature') || '0.35'),
 
   init: async () => {
     // 1. Fetch file list
@@ -82,6 +86,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setBypassMargin: (val: number) => {
     set({ bypassMargin: val });
     localStorage.setItem('bypassMargin', String(val));
+  },
+
+  setDefaultCurvature: (val: number) => {
+    set({ defaultCurvature: val });
+    localStorage.setItem('defaultCurvature', String(val));
   },
 
   setAnimateDashed: (val: boolean) => {
@@ -164,6 +173,35 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
 
     // Save coordinate changes directly to the backend
+    get().saveToServer(updatedSpec);
+  },
+
+  dragNodes: (updates: { id: string; x: number; y: number }[]) => {
+    const data = get().currentData;
+    if (!data) return;
+
+    let updatedSpec: DiagramSpec;
+    const updateMap = new Map(updates.map(u => [u.id, u]));
+
+    if (data.type === 'sequence') {
+      const updatedParticipants = (data.participants || []).map(p => {
+        const u = updateMap.get(p.id);
+        return u ? { ...p, x: u.x, y: 50 } : p;
+      });
+      updatedSpec = { ...data, participants: updatedParticipants };
+    } else {
+      const updatedNodes = (data.nodes || []).map(n => {
+        const u = updateMap.get(n.id);
+        return u ? { ...n, x: u.x, y: u.y } : n;
+      });
+      updatedSpec = { ...data, nodes: updatedNodes };
+    }
+
+    set({
+      currentData: updatedSpec,
+      editorText: JSON.stringify(updatedSpec, null, 2)
+    });
+
     get().saveToServer(updatedSpec);
   },
 

@@ -1,0 +1,226 @@
+{
+  "width": 980,
+  "height": 500,
+  "nodes": [
+    {
+      "id": "start",
+      "type": "circle",
+      "theme": "red",
+      "x": 77,
+      "y": 180,
+      "width": 70,
+      "height": 70,
+      "label": "业务发生\n(原始凭证)"
+    },
+    {
+      "id": "audit_source",
+      "type": "rect",
+      "theme": "green",
+      "x": 250,
+      "y": 180,
+      "width": 140,
+      "height": 60,
+      "label": "审核原始凭证\n(合规/真实/完整)"
+    },
+    {
+      "id": "reject_source",
+      "type": "rect",
+      "theme": "gray",
+      "x": 250,
+      "y": 62,
+      "width": 140,
+      "height": 50,
+      "label": "退回报销人\n(补正/重开)"
+    },
+    {
+      "id": "prepare_voucher",
+      "type": "rect",
+      "theme": "blue",
+      "x": 440,
+      "y": 180,
+      "width": 140,
+      "height": 60,
+      "label": "填制记账凭证\n(确定会计分录)"
+    },
+    {
+      "id": "audit_voucher",
+      "type": "rect",
+      "theme": "green",
+      "x": 630,
+      "y": 180,
+      "width": 140,
+      "height": 60,
+      "label": "审核记账凭证\n(核对凭证与金额)"
+    },
+    {
+      "id": "post_ledger",
+      "type": "rect",
+      "theme": "blue",
+      "x": 865,
+      "y": 180,
+      "width": 140,
+      "height": 60,
+      "label": "登记明细账\n(及日记账平行登记)"
+    },
+    {
+      "id": "summary",
+      "type": "rect",
+      "theme": "blue",
+      "x": 865,
+      "y": 379,
+      "width": 140,
+      "height": 60,
+      "label": "编制科目汇总表\n(简化总账登记工作)"
+    },
+    {
+      "id": "post_gl",
+      "type": "rect",
+      "theme": "blue",
+      "x": 630,
+      "y": 380,
+      "width": 140,
+      "height": 60,
+      "label": "登记总分类账\n(根据汇总表登记)"
+    },
+    {
+      "id": "trial_balance",
+      "type": "rect",
+      "theme": "red",
+      "x": 440,
+      "y": 380,
+      "width": 140,
+      "height": 60,
+      "label": "对账与结账\n(账证/账账/账实)"
+    },
+    {
+      "id": "financial_report",
+      "type": "rect",
+      "theme": "green",
+      "x": 215,
+      "y": 382,
+      "width": 140,
+      "height": 60,
+      "label": "编制财务报表\n(资产负债/利润表)"
+    },
+    {
+      "id": "end",
+      "type": "circle",
+      "theme": "gray",
+      "x": 74,
+      "y": 381,
+      "width": 70,
+      "height": 70,
+      "label": "凭证归档\n(装订与保管)"
+    }
+  ],
+  "connections": [
+    {
+      "from": "start",
+      "to": "audit_source",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "audit_source",
+      "to": "prepare_voucher",
+      "lineType": "solid",
+      "curve": "straight",
+      "label": "通过"
+    },
+    {
+      "from": "audit_source",
+      "to": "reject_source",
+      "lineType": "dashed",
+      "curve": "straight",
+      "label": "不合规"
+    },
+    {
+      "from": "reject_source",
+      "to": "start",
+      "lineType": "dotted",
+      "curve": "bezier",
+      "fromOffset": [
+        -70,
+        0
+      ],
+      "toOffset": [
+        0,
+        -35
+      ]
+    },
+    {
+      "from": "prepare_voucher",
+      "to": "audit_voucher",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "audit_voucher",
+      "to": "post_ledger",
+      "lineType": "solid",
+      "curve": "straight",
+      "label": "通过"
+    },
+    {
+      "from": "audit_voucher",
+      "to": "prepare_voucher",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "label": "驳回修改",
+      "fromOffset": [
+        -20,
+        -30
+      ],
+      "toOffset": [
+        20,
+        -30
+      ]
+    },
+    {
+      "from": "post_ledger",
+      "to": "summary",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "summary",
+      "to": "post_gl",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "post_gl",
+      "to": "trial_balance",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "trial_balance",
+      "to": "financial_report",
+      "lineType": "solid",
+      "curve": "straight",
+      "label": "账实相符"
+    },
+    {
+      "from": "financial_report",
+      "to": "end",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "trial_balance",
+      "to": "prepare_voucher",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "label": "差错处理",
+      "fromOffset": [
+        0,
+        -30
+      ],
+      "toOffset": [
+        0,
+        30
+      ]
+    }
+  ]
+}

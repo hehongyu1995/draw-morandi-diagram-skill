@@ -14,11 +14,15 @@ export interface DiagramNode {
 export interface Connection {
   from: string;
   to: string;
+  label?: string;
   lineType?: 'solid' | 'dashed' | 'dotted';
   curve?: 'straight' | 'bezier';
   fromOffset?: [number, number];
   toOffset?: [number, number];
   animate?: boolean;
+  curvature?: number;
+  fromCurvature?: number;
+  toCurvature?: number;
 }
 
 export interface Participant {
@@ -38,6 +42,7 @@ export interface Activation {
 }
 
 export interface Message {
+  id?: string;
   from: string;
   to: string;
   y: number;
@@ -55,6 +60,16 @@ export interface Note {
   height?: number;
 }
 
+export interface DiagramGroup {
+  id: string;
+  label: string;
+  theme?: string;
+  nodeIds?: string[];
+  participants?: string[];
+  messageFrom?: string | number;
+  messageTo?: string | number;
+}
+
 export interface DiagramSpec {
   type?: 'sequence';
   width?: number;
@@ -65,6 +80,7 @@ export interface DiagramSpec {
   activations?: Activation[];
   messages?: Message[];
   notes?: Note[];
+  groups?: DiagramGroup[];
 }
 
 export interface ThemeColors {
