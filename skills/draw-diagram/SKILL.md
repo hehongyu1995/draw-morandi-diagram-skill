@@ -15,12 +15,14 @@ Use this skill to draw or generate highly aesthetic flowcharts, architecture dia
 * **Nodes**: Circular, capsule (stadium), or round-rectangular blocks.
 * **Connections**: Auto-routed straight lines or cubic Bezier curves connecting the nearest borders of nodes.
 * **Line Styles**: Solid (default), dashed (`lineType: "dashed"`), or dotted (`lineType: "dotted"`).
+* **Flow Animations**: Beautiful, direction-aware flowing dot overlays indicating control/data flow direction. Can be configured per connection or toggled globally.
 * **Themes**: Predefined Morandi desaturated color themes (`red`, `green`, `blue`, `gray`).
 
 ### B. UML Sequence Diagrams (`type: "sequence"`)
 * **Participants**: Horizontally placed lifelines (automatically spaced if `x` coordinates are omitted).
 * **Activation Bars**: Highlight active execution segments on lifelines.
 * **Messages**: Horizontal asynchronous/synchronous calls, return calls, and self-loop arrows.
+* **Flow Animations**: Direction-aware flow overlays indicating sequential execution direction.
 
 ---
 
@@ -59,7 +61,8 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
       "from": "in",
       "to": "router",
       "lineType": "solid",
-      "curve": "straight"
+      "curve": "straight",
+      "animate": true
     }
   ]
 }
@@ -77,6 +80,7 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
   * `lineType`: `"solid"` | `"dashed"` | `"dotted"`.
   * `curve`: `"straight"` | `"bezier"`.
   * `fromOffset`, `toOffset`: Optional `[dx, dy]` coordinate adjustments.
+  * `animate`: Optional boolean to enable/disable flowing animation on this line (defaults to `true`).
 
 ---
 
@@ -97,8 +101,8 @@ Set `"type": "sequence"` in the root object.
     { "participant": "agent", "start": 180, "end": 360 }
   ],
   "messages": [
-    { "from": "user", "to": "agent", "y": 180, "label": "1. Prompt Request", "lineType": "solid" },
-    { "from": "agent", "to": "user", "y": 360, "label": "2. Return Result", "lineType": "dashed" }
+    { "from": "user", "to": "agent", "y": 180, "label": "1. Prompt Request", "lineType": "solid", "animate": true },
+    { "from": "agent", "to": "user", "y": 360, "label": "2. Return Result", "lineType": "dashed", "animate": true }
   ]
 }
 ```
@@ -114,6 +118,7 @@ Set `"type": "sequence"` in the root object.
   * `y`: Vertical placement coordinate.
   * `label`: String label placed above the message arrow.
   * `lineType`: `"solid"` (default call) | `"dashed"` (returns).
+  * `animate`: Optional boolean to enable/disable flowing animation on this message arrow (defaults to `true`).
 
 ---
 

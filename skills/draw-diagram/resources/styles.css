@@ -366,6 +366,17 @@ textarea::selection {
   font-size: 0.75rem;
 }
 
+/* Toggle button active state */
+.btn-active {
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--success-color) !important;
+  color: var(--success-color) !important;
+}
+
+.btn-active svg {
+  stroke: var(--success-color) !important;
+}
+
 /* Responsive Viewports */
 @media (max-width: 900px) {
   .main-container {

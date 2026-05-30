@@ -8,6 +8,7 @@ const svgRender = document.getElementById('svg-render');
 const canvasWrapper = document.getElementById('canvas-wrapper');
 const btnExportSvg = document.getElementById('btn-export-svg');
 const btnExportPng = document.getElementById('btn-export-png');
+const btnToggleAnimation = document.getElementById('btn-toggle-animation');
 const helpToggle = document.getElementById('help-toggle');
 const helpModal = document.getElementById('help-modal');
 
@@ -15,6 +16,7 @@ let currentData = null;
 let draggedNodeId = null;
 let dragOffset = { x: 0, y: 0 };
 let activeFile = 'diagram.json';
+let animationsEnabled = localStorage.getItem('animationsEnabled') !== 'false';
 
 // Initialize App
 function init() {
@@ -26,6 +28,13 @@ function init() {
   // Setup Poll Loop to auto-sync modifications from workspace (AI edits)
   setInterval(pollDiagramJson, 1500);
 
+  // Initialize Animation Button State
+  if (animationsEnabled) {
+    btnToggleAnimation.classList.add('btn-active');
+  } else {
+    btnToggleAnimation.classList.remove('btn-active');
+  }
+
   // Setup Event Listeners
   jsonEditor.addEventListener('input', handleEditorInput);
   fileSelect.addEventListener('change', (e) => {
@@ -35,6 +44,7 @@ function init() {
   
   btnExportSvg.addEventListener('click', exportSvg);
   btnExportPng.addEventListener('click', exportPng);
+  btnToggleAnimation.addEventListener('click', toggleAnimations);
   
   helpToggle.addEventListener('click', () => {
     const isVisible = helpModal.style.display === 'block';
@@ -59,6 +69,19 @@ function init() {
       handleEditorInput();
     }
   });
+
+function toggleAnimations() {
+  animationsEnabled = !animationsEnabled;
+  localStorage.setItem('animationsEnabled', animationsEnabled);
+  
+  if (animationsEnabled) {
+    btnToggleAnimation.classList.add('btn-active');
+    svgRender.classList.add('animations-active');
+  } else {
+    btnToggleAnimation.classList.remove('btn-active');
+    svgRender.classList.remove('animations-active');
+  }
+}
 
   // Helper to find a node/participant by ID
   function findNodeById(id) {
@@ -378,6 +401,12 @@ function renderDiagram() {
   canvasWrapper.style.width = `${width}px`;
   canvasWrapper.style.height = `${height}px`;
 
+  if (animationsEnabled) {
+    svgRender.classList.add('animations-active');
+  } else {
+    svgRender.classList.remove('animations-active');
+  }
+
   // Setup default markers and styling elements
   let svgContent = `
     <defs>
@@ -416,6 +445,31 @@ function renderDiagram() {
         fill: none;
         stroke: #6e6a5f;
         stroke-width: 1.5;
+      }
+      .connection-line-animated {
+        /* Animated when svg.animations-active */
+      }
+      svg.animations-active .connection-line-animated {
+        animation: flow-dash 3s linear infinite;
+      }
+      .connection-flow-overlay {
+        fill: none;
+        stroke: #191816;
+        opacity: 0.18;
+        stroke-width: 2.2;
+        stroke-dasharray: 6 18;
+        stroke-linecap: round;
+        pointer-events: none;
+        display: none;
+      }
+      svg.animations-active .connection-flow-overlay {
+        display: block;
+        animation: flow-dash 3s linear infinite;
+      }
+      @keyframes flow-dash {
+        to {
+          stroke-dashoffset: -120;
+        }
       }
     </style>
 
@@ -482,16 +536,28 @@ function renderDiagram() {
 
       let strokeDash = '';
       let strokeLineCap = '';
+      let isDashedOrDotted = false;
       if (conn.lineType === 'dashed') {
         strokeDash = 'stroke-dasharray="4 4"';
+        isDashedOrDotted = true;
       } else if (conn.lineType === 'dotted') {
         strokeDash = 'stroke-dasharray="2 3"';
         strokeLineCap = 'stroke-linecap="round"';
+        isDashedOrDotted = true;
       }
 
+      const animateConn = conn.animate !== false;
+      const animClass = (animateConn && isDashedOrDotted) ? ' connection-line-animated' : '';
+
       svgContent += `
-        <path d="${d}" class="connection-line" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)" />
+        <path d="${d}" class="connection-line${animClass}" ${strokeDash} ${strokeLineCap} marker-end="url(#arrow-solid)" />
       `;
+
+      if (animateConn && !isDashedOrDotted) {
+        svgContent += `
+          <path d="${d}" class="connection-flow-overlay" />
+        `;
+      }
     });
   }
 
@@ -605,6 +671,12 @@ function renderSequence() {
   canvasWrapper.style.width = `${width}px`;
   canvasWrapper.style.height = `${height}px`;
 
+  if (animationsEnabled) {
+    svgRender.classList.add('animations-active');
+  } else {
+    svgRender.classList.remove('animations-active');
+  }
+
   // Base setup
   let svgContent = `
     <defs>
@@ -661,6 +733,31 @@ function renderSequence() {
       .message-line {
         fill: none;
         stroke-width: 1.5;
+      }
+      .message-line-animated {
+        /* Animated when svg.animations-active */
+      }
+      svg.animations-active .message-line-animated {
+        animation: flow-dash 3s linear infinite;
+      }
+      .message-flow-overlay {
+        fill: none;
+        stroke: #191816;
+        opacity: 0.18;
+        stroke-width: 2.2;
+        stroke-dasharray: 6 18;
+        stroke-linecap: round;
+        pointer-events: none;
+        display: none;
+      }
+      svg.animations-active .message-flow-overlay {
+        display: block;
+        animation: flow-dash 3s linear infinite;
+      }
+      @keyframes flow-dash {
+        to {
+          stroke-dashoffset: -120;
+        }
       }
     </style>
 
@@ -727,7 +824,14 @@ function renderSequence() {
         const d = `M ${x} ${y1} C ${x + 40} ${y1}, ${x + 40} ${y2}, ${x} ${y2}`;
         
         svgContent += `
-          <path d="${d}" class="message-line" stroke="${stroke}" ${strokeDash} marker-end="${marker}" />
+          <path d="${d}" class="message-line${animClass}" stroke="${stroke}" ${strokeDash} marker-end="${marker}" />
+        `;
+        if (animateMsg && !isDashedOrDotted) {
+          svgContent += `
+            <path d="${d}" class="message-flow-overlay" />
+          `;
+        }
+        svgContent += `
           <text x="${x + 45}" y="${y1 + 14}" class="message-text" text-anchor="start" dominant-baseline="central">${msg.label}</text>
         `;
       } else {
@@ -738,7 +842,14 @@ function renderSequence() {
         const d = `M ${startX} ${msg.y} L ${endX} ${msg.y}`;
 
         svgContent += `
-          <path d="${d}" class="message-line" stroke="${stroke}" ${strokeDash} marker-end="${marker}" />
+          <path d="${d}" class="message-line${animClass}" stroke="${stroke}" ${strokeDash} marker-end="${marker}" />
+        `;
+        if (animateMsg && !isDashedOrDotted) {
+          svgContent += `
+            <path d="${d}" class="message-flow-overlay" />
+          `;
+        }
+        svgContent += `
           <text x="${(startX + endX) / 2}" y="${msg.y - 7}" class="message-text" text-anchor="middle" dominant-baseline="auto">${msg.label}</text>
         `;
       }
