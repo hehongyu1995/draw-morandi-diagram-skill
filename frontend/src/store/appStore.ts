@@ -26,6 +26,7 @@ interface AppState {
   saveToServer: (data: DiagramSpec) => Promise<void>;
   setIsExportingGif: (val: boolean) => void;
   setGifProgress: (val: number) => void;
+  updateConnectionOffset: (connIdx: number, type: 'from' | 'to', offset: [number, number]) => void;
 }
 
 let saveTimeout: any = null;
@@ -179,5 +180,28 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setIsExportingGif: (val: boolean) => set({ isExportingGif: val }),
-  setGifProgress: (val: number) => set({ gifProgress: val })
+  setGifProgress: (val: number) => set({ gifProgress: val }),
+  updateConnectionOffset: (connIdx: number, type: 'from' | 'to', offset: [number, number]) => {
+    const data = get().currentData;
+    if (!data || !data.connections) return;
+
+    const updatedConns = [...data.connections];
+    const conn = { ...updatedConns[connIdx] };
+    
+    if (type === 'from') {
+      conn.fromOffset = offset;
+    } else {
+      conn.toOffset = offset;
+    }
+    
+    updatedConns[connIdx] = conn;
+
+    const updatedSpec = { ...data, connections: updatedConns };
+    set({
+      currentData: updatedSpec,
+      editorText: JSON.stringify(updatedSpec, null, 2)
+    });
+
+    get().saveToServer(updatedSpec);
+  }
 }));

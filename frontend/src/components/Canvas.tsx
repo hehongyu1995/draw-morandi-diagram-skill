@@ -109,6 +109,45 @@ export function updateStaticDots(svg: SVGSVGElement, t: number, isSequence: bool
   });
 }
 
+function getNodeSnapPort(
+  mouseX: number,
+  mouseY: number,
+  node: DiagramNode,
+  snapDistance: number = 30
+) {
+  const w = node.type === 'circle' ? 50 : (node.width || 110);
+  const h = node.type === 'circle' ? 50 : (node.height || 50);
+
+  const ports: Array<{
+    portName: 'top' | 'bottom' | 'left' | 'right' | 'auto';
+    x: number;
+    y: number;
+    offset: [number, number];
+  }> = [
+    { portName: 'top', x: node.x, y: node.y - h / 2, offset: [0, -20] },
+    { portName: 'bottom', x: node.x, y: node.y + h / 2, offset: [0, 20] },
+    { portName: 'left', x: node.x - w / 2, y: node.y, offset: [-20, 0] },
+    { portName: 'right', x: node.x + w / 2, y: node.y, offset: [20, 0] },
+    { portName: 'auto', x: node.x, y: node.y, offset: [0, 0] }
+  ];
+
+  let closestPort = ports[4]; // Default to Auto
+  let minDistance = Infinity;
+
+  ports.forEach(port => {
+    const dist = Math.hypot(mouseX - port.x, mouseY - port.y);
+    if (dist < minDistance) {
+      minDistance = dist;
+      closestPort = port;
+    }
+  });
+
+  if (minDistance < snapDistance) {
+    return closestPort;
+  }
+  return null;
+}
+
 export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => {
   const {
     currentData,
@@ -116,11 +155,20 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
     bypassMargin,
     animateDashed,
     animateSolid,
-    dragNode
+    dragNode,
+    updateConnectionOffset
   } = useAppStore();
 
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
+
+  const [hoveredConnIdx, setHoveredConnIdx] = useState<number | null>(null);
+  const [draggedAnchor, setDraggedAnchor] = useState<{
+    connIdx: number;
+    type: 'from' | 'to';
+    currentX: number;
+    currentY: number;
+  } | null>(null);
 
   React.useLayoutEffect(() => {
     if (exportTime !== null && svgRef.current) {
@@ -129,7 +177,7 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
   }, [exportTime, currentData]);
 
   React.useEffect(() => {
-    if (!draggedId) return;
+    if (!draggedId && !draggedAnchor) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       const svg = svgRef.current;
@@ -139,18 +187,77 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      const newX = Math.round(mouseX - dragOffset.current.x);
-      let newY = Math.round(mouseY - dragOffset.current.y);
+      if (draggedId) {
+        const newX = Math.round(mouseX - dragOffset.current.x);
+        let newY = Math.round(mouseY - dragOffset.current.y);
 
-      if (currentData.type === 'sequence') {
-        newY = 50; // Lock vertical coordinate for sequence participants
+        if (currentData.type === 'sequence') {
+          newY = 50; // Lock vertical coordinate for sequence participants
+        }
+        dragNode(draggedId, newX, newY);
+      } else if (draggedAnchor) {
+        const conn = currentData.connections?.[draggedAnchor.connIdx];
+        if (!conn) return;
+
+        const nodes = currentData.nodes || [];
+        const nodeMap = new Map(nodes.map(n => [n.id, n]));
+        const targetNodeId = draggedAnchor.type === 'from' ? conn.from : conn.to;
+        const targetNode = nodeMap.get(targetNodeId);
+
+        let currentX = mouseX;
+        let currentY = mouseY;
+
+        if (targetNode) {
+          const snapped = getNodeSnapPort(mouseX, mouseY, targetNode, 30);
+          if (snapped) {
+            currentX = snapped.x;
+            currentY = snapped.y;
+          }
+        }
+
+        setDraggedAnchor(prev => prev ? {
+          ...prev,
+          currentX,
+          currentY
+        } : null);
       }
-
-      dragNode(draggedId, newX, newY);
     };
 
-    const handleMouseUp = () => {
-      setDraggedId(null);
+    const handleMouseUp = (e: MouseEvent) => {
+      if (draggedId) {
+        setDraggedId(null);
+      }
+
+      if (draggedAnchor) {
+        const svg = svgRef.current;
+        const conn = currentData?.connections?.[draggedAnchor.connIdx];
+
+        if (svg && currentData && conn) {
+          const rect = svg.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+
+          const nodes = currentData.nodes || [];
+          const nodeMap = new Map(nodes.map(n => [n.id, n]));
+          const targetNodeId = draggedAnchor.type === 'from' ? conn.from : conn.to;
+          const targetNode = nodeMap.get(targetNodeId);
+
+          let finalOffset: [number, number] = [0, 0];
+
+          if (targetNode) {
+            // Snaps to the closest port overall on release
+            const snapped = getNodeSnapPort(mouseX, mouseY, targetNode, Infinity);
+            if (snapped) {
+              finalOffset = snapped.offset;
+            }
+          }
+
+          updateConnectionOffset(draggedAnchor.connIdx, draggedAnchor.type, finalOffset);
+        }
+
+        setDraggedAnchor(null);
+        setHoveredConnIdx(null);
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -160,7 +267,7 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [draggedId, dragNode, currentData, svgRef]);
+  }, [draggedId, draggedAnchor, dragNode, updateConnectionOffset, currentData, svgRef]);
 
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     const target = e.target as SVGElement;
@@ -669,9 +776,22 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
             const nodeB = nodeMap.get(conn.to);
             if (!nodeA || !nodeB) return null;
 
-            const fromOff = conn.fromOffset || [0, 0];
-            const toOff = conn.toOffset || [0, 0];
-            const { x1, y1, x2, y2 } = getConnectionEndpoints(nodeA, nodeB, fromOff, toOff);
+            let fromOff = conn.fromOffset || [0, 0];
+            let toOff = conn.toOffset || [0, 0];
+            let { x1, y1, x2, y2 } = getConnectionEndpoints(nodeA, nodeB, fromOff, toOff);
+
+            // Override endpoints dynamically if this connection anchor is being dragged
+            const isDraggingThisFrom = draggedAnchor?.connIdx === connIdx && draggedAnchor.type === 'from';
+            const isDraggingThisTo = draggedAnchor?.connIdx === connIdx && draggedAnchor.type === 'to';
+
+            if (isDraggingThisFrom && draggedAnchor) {
+              x1 = draggedAnchor.currentX;
+              y1 = draggedAnchor.currentY;
+            }
+            if (isDraggingThisTo && draggedAnchor) {
+              x2 = draggedAnchor.currentX;
+              y2 = draggedAnchor.currentY;
+            }
 
             let d = '';
             if (conn.curve === 'bezier') {
@@ -735,9 +855,18 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
             const animateSolidConn = animateConn && !isDashedOrDotted && animateSolid;
 
             const pathId = `flow-path-${conn.from}-${conn.to}`;
+            const isHovered = hoveredConnIdx === connIdx || draggedAnchor?.connIdx === connIdx;
 
             return (
-              <g key={`conn-${connIdx}`}>
+              <g
+                key={`conn-${connIdx}`}
+                onMouseEnter={() => setHoveredConnIdx(connIdx)}
+                onMouseLeave={() => {
+                  if (draggedAnchor?.connIdx !== connIdx) {
+                    setHoveredConnIdx(null);
+                  }
+                }}
+              >
                 {animateDashedConn ? (
                   isStaticExport ? (
                     <path
@@ -807,9 +936,98 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
                     </>
                   )
                 )}
+
+                {/* Invisible thick path helper for easy hovering over fine lines */}
+                {!isStaticExport && (
+                  <path
+                    d={d}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth="12"
+                    style={{ cursor: 'pointer' }}
+                  />
+                )}
+
+                {/* Endpoint Interactive Drag Handles */}
+                {isHovered && !isStaticExport && (
+                  <>
+                    <circle
+                      cx={x1}
+                      cy={y1}
+                      r="5"
+                      fill="var(--bg-secondary)"
+                      stroke="var(--text-secondary)"
+                      strokeWidth="2"
+                      style={{ cursor: 'crosshair' }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        setDraggedAnchor({
+                          connIdx,
+                          type: 'from',
+                          currentX: x1,
+                          currentY: y1
+                        });
+                      }}
+                    />
+                    <circle
+                      cx={x2}
+                      cy={y2}
+                      r="5"
+                      fill="var(--bg-secondary)"
+                      stroke="var(--text-secondary)"
+                      strokeWidth="2"
+                      style={{ cursor: 'crosshair' }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        setDraggedAnchor({
+                          connIdx,
+                          type: 'to',
+                          currentX: x2,
+                          currentY: y2
+                        });
+                      }}
+                    />
+                  </>
+                )}
               </g>
             );
           })}
+
+          {/* Snap Ports (Top/Bottom/Left/Right) preview for the dragged connection node */}
+          {draggedAnchor && !isStaticExport && (() => {
+            const conn = currentData.connections?.[draggedAnchor.connIdx];
+            if (!conn) return null;
+            const targetNodeId = draggedAnchor.type === 'from' ? conn.from : conn.to;
+            const targetNode = nodeMap.get(targetNodeId);
+            if (!targetNode) return null;
+
+            const w = targetNode.type === 'circle' ? 50 : (targetNode.width || 110);
+            const h = targetNode.type === 'circle' ? 50 : (targetNode.height || 50);
+
+            const ports = [
+              { x: targetNode.x, y: targetNode.y - h / 2 },
+              { x: targetNode.x, y: targetNode.y + h / 2 },
+              { x: targetNode.x - w / 2, y: targetNode.y },
+              { x: targetNode.x + w / 2, y: targetNode.y }
+            ];
+
+            return (
+              <g className="snap-ports-group">
+                {ports.map((port, idx) => (
+                  <circle
+                    key={idx}
+                    cx={port.x}
+                    cy={port.y}
+                    r="4"
+                    fill="var(--success-color)"
+                    stroke="var(--bg-secondary)"
+                    strokeWidth="1.5"
+                    style={{ opacity: 0.8, pointerEvents: 'none' }}
+                  />
+                ))}
+              </g>
+            );
+          })()}
 
           {/* 2. Draw Nodes */}
           {nodes.map(node => {
