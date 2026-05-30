@@ -1,0 +1,206 @@
+{
+  "width": 760,
+  "height": 820,
+  "nodes": [
+    {
+      "id": "in_tokens",
+      "type": "capsule",
+      "theme": "red",
+      "x": 383,
+      "y": 797,
+      "width": 120,
+      "height": 40,
+      "label": "Input Tokens"
+    },
+    {
+      "id": "token_emb",
+      "type": "rect",
+      "theme": "blue",
+      "x": 383,
+      "y": 727,
+      "width": 160,
+      "height": 50,
+      "label": "Token Embedding"
+    },
+    {
+      "id": "rmsnorm_att",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 382,
+      "y": 644,
+      "width": 140,
+      "height": 40,
+      "label": "Input RMSNorm"
+    },
+    {
+      "id": "gqa_rope",
+      "type": "rect",
+      "theme": "green",
+      "x": 385,
+      "y": 555,
+      "width": 220,
+      "height": 60,
+      "label": "Grouped-Query Attention\n(with RoPE on Q & K)"
+    },
+    {
+      "id": "att_proj",
+      "type": "rect",
+      "theme": "blue",
+      "x": 382,
+      "y": 457,
+      "width": 160,
+      "height": 45,
+      "label": "Output Projection"
+    },
+    {
+      "id": "add_1",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 383,
+      "y": 377,
+      "width": 110,
+      "height": 40,
+      "label": "Add (Residual)"
+    },
+    {
+      "id": "rmsnorm_ffn",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 384,
+      "y": 309,
+      "width": 140,
+      "height": 40,
+      "label": "Post-Attn RMSNorm"
+    },
+    {
+      "id": "swiglu_mlp",
+      "type": "rect",
+      "theme": "green",
+      "x": 379,
+      "y": 211,
+      "width": 220,
+      "height": 60,
+      "label": "SwiGLU MLP Block\n(Gate & Up -> Swish -> Down)"
+    },
+    {
+      "id": "add_2",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 380,
+      "y": 137,
+      "width": 110,
+      "height": 40,
+      "label": "Add (Residual)"
+    },
+    {
+      "id": "final_rmsnorm",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 380,
+      "y": 76,
+      "width": 140,
+      "height": 40,
+      "label": "Final RMSNorm"
+    },
+    {
+      "id": "output_head",
+      "type": "rect",
+      "theme": "red",
+      "x": 381,
+      "y": 19,
+      "width": 160,
+      "height": 40,
+      "label": "Linear & Softmax"
+    }
+  ],
+  "connections": [
+    {
+      "from": "in_tokens",
+      "to": "token_emb",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "token_emb",
+      "to": "rmsnorm_att",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "token_emb",
+      "to": "add_1",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "fromOffset": [
+        -80,
+        0
+      ],
+      "toOffset": [
+        -55,
+        0
+      ]
+    },
+    {
+      "from": "rmsnorm_att",
+      "to": "gqa_rope",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "gqa_rope",
+      "to": "att_proj",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "att_proj",
+      "to": "add_1",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "add_1",
+      "to": "rmsnorm_ffn",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "add_1",
+      "to": "add_2",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "fromOffset": [
+        55,
+        0
+      ],
+      "toOffset": [
+        55,
+        0
+      ]
+    },
+    {
+      "from": "rmsnorm_ffn",
+      "to": "swiglu_mlp",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "swiglu_mlp",
+      "to": "add_2",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "add_2",
+      "to": "final_rmsnorm",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "final_rmsnorm",
+      "to": "output_head",
+      "lineType": "solid",
+      "curve": "straight"
+    }
+  ]
+}

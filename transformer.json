@@ -1,0 +1,320 @@
+{
+  "width": 800,
+  "height": 820,
+  "nodes": [
+    {
+      "id": "enc_in",
+      "type": "capsule",
+      "theme": "red",
+      "x": 200,
+      "y": 740,
+      "width": 120,
+      "height": 40,
+      "label": "Input Tokens"
+    },
+    {
+      "id": "enc_emb",
+      "type": "rect",
+      "theme": "blue",
+      "x": 200,
+      "y": 650,
+      "width": 150,
+      "height": 50,
+      "label": "Input Embedding\\n+ Positional Enc"
+    },
+    {
+      "id": "enc_mha",
+      "type": "rect",
+      "theme": "green",
+      "x": 200,
+      "y": 540,
+      "width": 140,
+      "height": 50,
+      "label": "Multi-Head\\nAttention"
+    },
+    {
+      "id": "enc_add_norm1",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 200,
+      "y": 440,
+      "width": 110,
+      "height": 40,
+      "label": "Add & Norm"
+    },
+    {
+      "id": "enc_ffn",
+      "type": "rect",
+      "theme": "blue",
+      "x": 200,
+      "y": 340,
+      "width": 140,
+      "height": 50,
+      "label": "Feed\\nForward"
+    },
+    {
+      "id": "enc_add_norm2",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 200,
+      "y": 240,
+      "width": 110,
+      "height": 40,
+      "label": "Add & Norm"
+    },
+    {
+      "id": "dec_in",
+      "type": "capsule",
+      "theme": "red",
+      "x": 600,
+      "y": 740,
+      "width": 140,
+      "height": 45,
+      "label": "Output Tokens\\n(shifted right)"
+    },
+    {
+      "id": "dec_emb",
+      "type": "rect",
+      "theme": "blue",
+      "x": 600,
+      "y": 650,
+      "width": 150,
+      "height": 50,
+      "label": "Output Embedding\\n+ Positional Enc"
+    },
+    {
+      "id": "dec_masked_mha",
+      "type": "rect",
+      "theme": "green",
+      "x": 600,
+      "y": 540,
+      "width": 155,
+      "height": 50,
+      "label": "Masked Multi-Head\\nAttention"
+    },
+    {
+      "id": "dec_add_norm1",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 600,
+      "y": 440,
+      "width": 110,
+      "height": 40,
+      "label": "Add & Norm"
+    },
+    {
+      "id": "dec_cross_mha",
+      "type": "rect",
+      "theme": "green",
+      "x": 600,
+      "y": 350,
+      "width": 150,
+      "height": 50,
+      "label": "Cross-Attention\\n(Enc-Dec)"
+    },
+    {
+      "id": "dec_add_norm2",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 600,
+      "y": 260,
+      "width": 110,
+      "height": 40,
+      "label": "Add & Norm"
+    },
+    {
+      "id": "dec_ffn",
+      "type": "rect",
+      "theme": "blue",
+      "x": 600,
+      "y": 175,
+      "width": 140,
+      "height": 50,
+      "label": "Feed\\nForward"
+    },
+    {
+      "id": "dec_add_norm3",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 602,
+      "y": 98,
+      "width": 110,
+      "height": 40,
+      "label": "Add & Norm"
+    },
+    {
+      "id": "dec_linear",
+      "type": "rect",
+      "theme": "red",
+      "x": 600,
+      "y": 35,
+      "width": 150,
+      "height": 40,
+      "label": "Linear & Softmax"
+    }
+  ],
+  "connections": [
+    {
+      "from": "enc_in",
+      "to": "enc_emb",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "enc_emb",
+      "to": "enc_mha",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "enc_mha",
+      "to": "enc_add_norm1",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "enc_add_norm1",
+      "to": "enc_ffn",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "enc_ffn",
+      "to": "enc_add_norm2",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "enc_emb",
+      "to": "enc_add_norm1",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "fromOffset": [
+        -80,
+        0
+      ],
+      "toOffset": [
+        -60,
+        0
+      ]
+    },
+    {
+      "from": "enc_add_norm1",
+      "to": "enc_add_norm2",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "fromOffset": [
+        -60,
+        0
+      ],
+      "toOffset": [
+        -60,
+        0
+      ]
+    },
+    {
+      "from": "dec_in",
+      "to": "dec_emb",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "dec_emb",
+      "to": "dec_masked_mha",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "dec_masked_mha",
+      "to": "dec_add_norm1",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "dec_add_norm1",
+      "to": "dec_cross_mha",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "dec_cross_mha",
+      "to": "dec_add_norm2",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "dec_add_norm2",
+      "to": "dec_ffn",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "dec_ffn",
+      "to": "dec_add_norm3",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "dec_add_norm3",
+      "to": "dec_linear",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "dec_emb",
+      "to": "dec_add_norm1",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "fromOffset": [
+        80,
+        0
+      ],
+      "toOffset": [
+        60,
+        0
+      ]
+    },
+    {
+      "from": "dec_add_norm1",
+      "to": "dec_add_norm2",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "fromOffset": [
+        60,
+        0
+      ],
+      "toOffset": [
+        60,
+        0
+      ]
+    },
+    {
+      "from": "dec_add_norm2",
+      "to": "dec_add_norm3",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "fromOffset": [
+        60,
+        0
+      ],
+      "toOffset": [
+        60,
+        0
+      ]
+    },
+    {
+      "from": "enc_add_norm2",
+      "to": "dec_cross_mha",
+      "lineType": "solid",
+      "curve": "bezier",
+      "fromOffset": [
+        60,
+        0
+      ],
+      "toOffset": [
+        -80,
+        0
+      ]
+    }
+  ]
+}

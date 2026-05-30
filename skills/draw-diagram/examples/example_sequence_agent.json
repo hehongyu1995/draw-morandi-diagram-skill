@@ -1,0 +1,115 @@
+{
+  "type": "sequence",
+  "width": 850,
+  "height": 480,
+  "participants": [
+    {
+      "id": "user",
+      "label": "User\nClient",
+      "theme": "red",
+      "x": 100,
+      "y": 50,
+      "type": "capsule",
+      "width": 120,
+      "height": 45
+    },
+    {
+      "id": "agent",
+      "label": "Orchestrator\nAgent",
+      "theme": "blue",
+      "x": 344,
+      "y": 50,
+      "type": "capsule",
+      "width": 120,
+      "height": 45
+    },
+    {
+      "id": "llm",
+      "label": "LLM\nService",
+      "theme": "green",
+      "x": 589,
+      "y": 50,
+      "type": "capsule",
+      "width": 120,
+      "height": 45
+    },
+    {
+      "id": "tool",
+      "label": "Code\nSandbox",
+      "theme": "green",
+      "x": 746,
+      "y": 50,
+      "type": "capsule",
+      "width": 120,
+      "height": 45
+    }
+  ],
+  "messages": [
+    {
+      "from": "user",
+      "to": "agent",
+      "label": "1. Prompt Request",
+      "y": 130,
+      "lineType": "solid"
+    },
+    {
+      "from": "agent",
+      "to": "llm",
+      "label": "2. Generate Plan",
+      "y": 180,
+      "lineType": "solid"
+    },
+    {
+      "from": "llm",
+      "to": "agent",
+      "label": "3. Plan JSON",
+      "y": 230,
+      "lineType": "dashed"
+    },
+    {
+      "from": "agent",
+      "to": "tool",
+      "label": "4. Run Code",
+      "y": 280,
+      "lineType": "solid"
+    },
+    {
+      "from": "tool",
+      "to": "agent",
+      "label": "5. Exec Result",
+      "y": 330,
+      "lineType": "dashed"
+    },
+    {
+      "from": "agent",
+      "to": "agent",
+      "label": "6. Self Critical Refine",
+      "y": 370,
+      "lineType": "dashed"
+    },
+    {
+      "from": "agent",
+      "to": "user",
+      "label": "7. Final Answer",
+      "y": 420,
+      "lineType": "dashed"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "agent",
+      "start": 130,
+      "end": 420
+    },
+    {
+      "participant": "llm",
+      "start": 180,
+      "end": 230
+    },
+    {
+      "participant": "tool",
+      "start": 280,
+      "end": 330
+    }
+  ]
+}

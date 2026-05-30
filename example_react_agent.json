@@ -1,0 +1,126 @@
+{
+  "width": 1000,
+  "height": 450,
+  "nodes": [
+    {
+      "id": "start",
+      "type": "circle",
+      "theme": "red",
+      "x": 80,
+      "y": 180,
+      "label": "User\nGoal"
+    },
+    {
+      "id": "thought",
+      "type": "rect",
+      "theme": "green",
+      "x": 250,
+      "y": 180,
+      "width": 130,
+      "height": 60,
+      "label": "Thought\n(Reasoning)"
+    },
+    {
+      "id": "action",
+      "type": "rect",
+      "theme": "green",
+      "x": 471,
+      "y": 75,
+      "width": 130,
+      "height": 60,
+      "label": "Action\n(Tool Decision)"
+    },
+    {
+      "id": "tool",
+      "type": "rect",
+      "theme": "blue",
+      "x": 875,
+      "y": 314,
+      "width": 130,
+      "height": 60,
+      "label": "Environment\n(Tool Execute)"
+    },
+    {
+      "id": "observation",
+      "type": "rect",
+      "theme": "blue",
+      "x": 544,
+      "y": 357,
+      "width": 130,
+      "height": 60,
+      "label": "Observation\n(Result)"
+    },
+    {
+      "id": "done",
+      "type": "capsule",
+      "theme": "red",
+      "x": 906,
+      "y": 86,
+      "width": 80,
+      "height": 40,
+      "label": "Final\nAnswer"
+    }
+  ],
+  "connections": [
+    {
+      "from": "start",
+      "to": "thought",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "thought",
+      "to": "action",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "action",
+      "to": "tool",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "tool",
+      "to": "observation",
+      "lineType": "solid",
+      "curve": "bezier",
+      "fromOffset": [
+        0,
+        15
+      ],
+      "toOffset": [
+        0,
+        0
+      ]
+    },
+    {
+      "from": "observation",
+      "to": "thought",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "fromOffset": [
+        0,
+        0
+      ],
+      "toOffset": [
+        0,
+        20
+      ]
+    },
+    {
+      "from": "action",
+      "to": "done",
+      "lineType": "solid",
+      "curve": "bezier",
+      "fromOffset": [
+        0,
+        -30
+      ],
+      "toOffset": [
+        0,
+        -10
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# System CLI / agent workspace metadata
+.antigravitycli/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Editor configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

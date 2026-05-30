@@ -1,0 +1,170 @@
+{
+  "width": 900,
+  "height": 700,
+  "nodes": [
+    {
+      "id": "start",
+      "type": "circle",
+      "theme": "green",
+      "x": 150,
+      "y": 80,
+      "width": 70,
+      "height": 70,
+      "label": "开始申报"
+    },
+    {
+      "id": "login",
+      "type": "rect",
+      "theme": "blue",
+      "x": 150,
+      "y": 200,
+      "width": 140,
+      "height": 60,
+      "label": "登录电子税务局"
+    },
+    {
+      "id": "select_form",
+      "type": "rect",
+      "theme": "blue",
+      "x": 150,
+      "y": 310,
+      "width": 160,
+      "height": 60,
+      "label": "选择增值税申报表"
+    },
+    {
+      "id": "fill_data",
+      "type": "rect",
+      "theme": "blue",
+      "x": 150,
+      "y": 420,
+      "width": 160,
+      "height": 60,
+      "label": "填写销售收入等数据"
+    },
+    {
+      "id": "check_threshold",
+      "type": "rect",
+      "theme": "red",
+      "x": 372,
+      "y": 419,
+      "width": 200,
+      "height": 80,
+      "label": "季度销售额≤30万？"
+    },
+    {
+      "id": "exempt",
+      "type": "rect",
+      "theme": "green",
+      "x": 687,
+      "y": 363,
+      "width": 160,
+      "height": 60,
+      "label": "免征增值税"
+    },
+    {
+      "id": "calculate_tax",
+      "type": "rect",
+      "theme": "red",
+      "x": 686,
+      "y": 481,
+      "width": 160,
+      "height": 60,
+      "label": "计算应纳税额"
+    },
+    {
+      "id": "submit",
+      "type": "rect",
+      "theme": "blue",
+      "x": 286,
+      "y": 587,
+      "width": 140,
+      "height": 60,
+      "label": "提交申报表"
+    },
+    {
+      "id": "pay_tax",
+      "type": "rect",
+      "theme": "red",
+      "x": 689,
+      "y": 588,
+      "width": 140,
+      "height": 60,
+      "label": "缴纳税款"
+    },
+    {
+      "id": "end",
+      "type": "circle",
+      "theme": "green",
+      "x": 93,
+      "y": 589,
+      "width": 70,
+      "height": 70,
+      "label": "完成"
+    }
+  ],
+  "connections": [
+    {
+      "from": "start",
+      "to": "login",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "login",
+      "to": "select_form",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "select_form",
+      "to": "fill_data",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "fill_data",
+      "to": "check_threshold",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "check_threshold",
+      "to": "exempt",
+      "lineType": "solid",
+      "curve": "bezier",
+      "label": "是"
+    },
+    {
+      "from": "check_threshold",
+      "to": "calculate_tax",
+      "lineType": "solid",
+      "curve": "bezier",
+      "label": "否"
+    },
+    {
+      "from": "exempt",
+      "to": "submit",
+      "lineType": "dashed",
+      "curve": "bezier"
+    },
+    {
+      "from": "calculate_tax",
+      "to": "pay_tax",
+      "lineType": "solid",
+      "curve": "straight"
+    },
+    {
+      "from": "pay_tax",
+      "to": "submit",
+      "lineType": "dashed",
+      "curve": "bezier"
+    },
+    {
+      "from": "submit",
+      "to": "end",
+      "lineType": "solid",
+      "curve": "straight"
+    }
+  ]
+}
