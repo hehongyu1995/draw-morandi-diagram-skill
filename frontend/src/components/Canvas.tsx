@@ -770,7 +770,26 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
           {/* Canvas Background */}
           <rect width="100%" height="100%" fill="#faf8f5" />
 
-          {/* 1. Draw Connections */}
+          {/* 1. Draw Nodes */}
+          {nodes.map(node => {
+            const theme = THEMES[node.theme] || THEMES.gray;
+            return (
+              <g key={`node-${node.id}`} className="node-group" id={`node-g-${node.id}`}>
+                <NodeShape
+                  id={node.id}
+                  type={node.type}
+                  themeName={node.theme}
+                  x={node.x}
+                  y={node.y}
+                  width={node.width}
+                  height={node.height}
+                />
+                {renderLabel(node.label, node.x, node.y, theme.text)}
+              </g>
+            );
+          })}
+
+          {/* 2. Draw Connections */}
           {currentData.connections?.map((conn, connIdx) => {
             const nodeA = nodeMap.get(conn.from);
             const nodeB = nodeMap.get(conn.to);
@@ -1028,25 +1047,6 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
               </g>
             );
           })()}
-
-          {/* 2. Draw Nodes */}
-          {nodes.map(node => {
-            const theme = THEMES[node.theme] || THEMES.gray;
-            return (
-              <g key={`node-${node.id}`} className="node-group" id={`node-g-${node.id}`}>
-                <NodeShape
-                  id={node.id}
-                  type={node.type}
-                  themeName={node.theme}
-                  x={node.x}
-                  y={node.y}
-                  width={node.width}
-                  height={node.height}
-                />
-                {renderLabel(node.label, node.x, node.y, theme.text)}
-              </g>
-            );
-          })}
         </svg>
       </div>
     </div>
