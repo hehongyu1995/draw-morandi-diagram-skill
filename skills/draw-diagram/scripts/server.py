@@ -19,11 +19,16 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     return self.server.active_file
             return os.path.join(self.server.workspace_dir, filename)
             
-        # 2. Translate web UI assets to the configured resources directory
-        if parsed_path.path in ['/', '', '/index.html']:
+        # 2. Serve static assets directly from the web_dir folder structure
+        # Strip leading slash and resolve it in web_dir
+        rel_path = parsed_path.path.lstrip('/')
+        if not rel_path or rel_path == 'index.html':
             return os.path.join(self.server.web_dir, 'index.html')
-        elif filename in ['app.js', 'styles.css', 'gifshot.min.js']:
-            return os.path.join(self.server.web_dir, filename)
+            
+        target_web_path = os.path.join(self.server.web_dir, rel_path)
+        # Prevent directory traversal attacks by checking path resolution
+        if os.path.abspath(target_web_path).startswith(os.path.abspath(self.server.web_dir)):
+            return target_web_path
             
         # 3. Fall back to standard path translation
         return super().translate_path(path)
@@ -143,7 +148,12 @@ if __name__ == '__main__':
     # Determine default paths relative to script location
     script_dir = os.path.dirname(os.path.abspath(__file__))
     skill_dir = os.path.dirname(script_dir)
-    default_web_dir = os.path.join(skill_dir, 'resources')
+    repo_root = os.path.dirname(os.path.dirname(skill_dir))
+    
+    dist_dir = os.path.join(repo_root, 'frontend', 'dist')
+    legacy_web_dir = os.path.join(skill_dir, 'resources')
+    
+    default_web_dir = dist_dir if os.path.exists(dist_dir) else legacy_web_dir
 
     web_dir = os.path.abspath(args.web_dir) if args.web_dir else default_web_dir
     workspace_dir = os.path.abspath(args.dir)
