@@ -1,8 +1,6 @@
 # draw-morandi-diagram-skill
 
-**A diagram-drawing skill for AI agents.** Generate publication-quality sequence diagrams and flowcharts in a warm, editorial Morandi style — define by JSON, preview live, drag to refine, export SVG/PNG/GIF. Vibe-coded by an engineer who can't write frontend.
-
-> This project was built entirely through AI vibe coding (Antigravity + Gemini 2.5 Flash). The author knows zero React/TypeScript.
+**A diagram-drawing skill for AI agents.** Generate publication-quality sequence diagrams and flowcharts in a warm, editorial Morandi style — define by JSON, preview live, drag to refine, export SVG/PNG/GIF.
 
 ---
 
