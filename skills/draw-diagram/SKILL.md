@@ -102,7 +102,7 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
   * `id`: Unique identifier (string).
   * `type`: `"circle"` | `"rect"` | `"capsule"` | `"database"` | `"file"` | `"person"` | `"cloud"`.
   * `theme`: `"red"` (Terracotta) | `"green"` (Sage) | `"blue"` (Slate) | `"gray"` (Sand) | C4 themes: `"c4-context"` | `"c4-container"` | `"c4-component"` | `"c4-code"`.
-  * `x`, `y`: Absolute center coordinates.
+  * `x`, `y`: Absolute center coordinates. Optional when `autoLayout: true`; dagre computes positions at render time.
   * `width`, `height`: Rect/capsule/database/file dimensions (standard: `110x50` for rects).
   * `label`: Text label. Use `\n` or `\\n` for multiline text.
 * **Connection Properties**:
@@ -129,10 +129,10 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
   * `nodeIds`: Array of node IDs enclosed inside the boundary box (string[]).
   * `theme`: Optional group color theme override (`"red"` | `"green"` | `"blue"` | `"gray"` | C4 themes).
 * **Auto Layout**: Set `autoLayout: true` at the root level to automatically position nodes using dagre.
-  After layout runs, the flag resets to `false` to allow manual re-positioning. Direction is LR (left-to-right);
-  node separation and rank separation are configurable through the optional `layout` object. When combined with
-  `routing: "orthogonal"` on connections, routing points are also auto-computed unless layout constraints move
-  nodes after dagre.
+  The flag stays `true`; manual drag positions are persisted separately in `layout.overrides.nodes` and applied
+  on top of computed layout positions. Direction is LR (left-to-right); node separation and rank separation are
+  configurable through the optional `layout` object. When combined with `routing: "orthogonal"` on connections,
+  routing points are also auto-computed unless layout constraints move nodes after dagre.
 * **Layout Config**:
   * `direction`: Optional dagre direction, `"LR"` (default) or `"TB"`.
   * `nodesep`, `ranksep`, `marginx`, `marginy`: Optional dagre spacing overrides.
@@ -144,6 +144,13 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
     * `{ "type": "below", "nodeId": "A", "refNodeId": "B" }`: Prefer A below B.
   * Constraints are hints, not hard solver constraints. Invalid node IDs, self references, and cyclic ordering hints
     are ignored with console warnings.
+* **Layout Overrides**:
+  * `overrides.nodes`: Optional `Record<string, {x: number, y: number}>` for storing manual drag positions without
+    modifying the source node definitions.
+  * Override order: auto layout computes node positions, constraint normalization adjusts constrained positions,
+    then `layout.overrides.nodes` replaces any matching node coordinates.
+  * Do not include `layout.overrides` when generating diagrams. Overrides are created by human interaction in the UI,
+    not by LLM-authored source specs.
 
 Auto layout with constraints example:
 
@@ -177,6 +184,7 @@ When generating flowcharts, prefer `autoLayout: true` with `layout.constraints`.
 unless the user explicitly requests manual layout. Use `inline` for the main ordered path, `above` / `below` for
 branches, and `leftOf` / `rightOf` only when a pair relationship is clearer than a chain. Do not hand tune
 `fromOffset`, `toOffset`, or curvature fields in auto-layout mode unless manual visual polish is requested.
+Do not author `layout.overrides`; those are reserved for human drag tweaks in the UI.
 
 ---
 
@@ -360,7 +368,7 @@ The project uses **Vitest** for unit tests covering the pure-function transforma
 ```bash
 cd frontend && npm test
 ```
-31 tests across 4 test files cover: node dimensions, path midpoint calculation, connection endpoint geometry, and dagre auto layout. All tests are DOM/browser-free and run headlessly.
+48 tests across 6 test files cover: node dimensions, path midpoint calculation, connection endpoint geometry, dagre auto layout, type/schema guards, app store drag persistence, and layout constraint handling. All tests are DOM/browser-free and run headlessly.
 
 ### Path Midpoint Extraction
 The path-length midpoint utility (`frontend/src/utils/pathMidpoint.ts`) computes the point at 50% of total path length for orthogonal routed connections, used to position connection labels accurately on multi-segment paths.
