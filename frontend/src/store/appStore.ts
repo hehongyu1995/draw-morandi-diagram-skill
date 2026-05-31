@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { DiagramSpec } from '../types';
+import { computeAutoLayout } from '../utils/dagreLayout';
 
 interface AppState {
   currentData: DiagramSpec | null;
@@ -71,7 +72,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const res = await fetch(`/${filename}?t=${Date.now()}`);
       if (res.ok) {
-        const data = await res.json();
+        let data = await res.json();
+
+        // Auto-layout if flag is set
+        if (data.autoLayout && data.nodes && data.nodes.length > 0) {
+          data = computeAutoLayout(data);
+        }
+
         set({
           currentData: data,
           editorText: JSON.stringify(data, null, 2),
@@ -127,7 +134,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateEditorText: (text: string) => {
     set({ editorText: text });
     try {
-      const data = JSON.parse(text);
+      let data = JSON.parse(text);
+
+      // Auto-layout if flag is set
+      if (data.autoLayout && data.nodes && data.nodes.length > 0 && !data.type) {
+        data = computeAutoLayout(data);
+      }
+
       set({
         currentData: data,
         jsonStatus: { isValid: true, message: 'Valid JSON' }

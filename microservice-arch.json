@@ -1,0 +1,188 @@
+{
+  "autoLayout": true,
+  "width": 800,
+  "height": 400,
+  "nodes": [
+    {
+      "id": "gateway",
+      "type": "capsule",
+      "theme": "blue",
+      "x": 0,
+      "y": 0,
+      "label": "API网关"
+    },
+    {
+      "id": "auth",
+      "type": "rect",
+      "theme": "green",
+      "x": 0,
+      "y": 0,
+      "label": "鉴权服务"
+    },
+    {
+      "id": "order",
+      "type": "rect",
+      "theme": "green",
+      "x": 0,
+      "y": 0,
+      "label": "订单服务"
+    },
+    {
+      "id": "payment",
+      "type": "rect",
+      "theme": "green",
+      "x": 0,
+      "y": 0,
+      "label": "支付服务"
+    },
+    {
+      "id": "fulfillment",
+      "type": "rect",
+      "theme": "green",
+      "x": 0,
+      "y": 0,
+      "label": "履约服务"
+    },
+    {
+      "id": "mq",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 0,
+      "y": 0,
+      "label": "消息队列\n[RocketMQ]"
+    },
+    {
+      "id": "mysql_main",
+      "type": "database",
+      "theme": "gray",
+      "x": 0,
+      "y": 0,
+      "label": "MySQL\n[主库]"
+    },
+    {
+      "id": "mysql_slave",
+      "type": "database",
+      "theme": "gray",
+      "x": 0,
+      "y": 0,
+      "label": "MySQL\n[从库]"
+    },
+    {
+      "id": "redis",
+      "type": "database",
+      "theme": "red",
+      "x": 0,
+      "y": 0,
+      "label": "Redis\n[缓存]"
+    },
+    {
+      "id": "es",
+      "type": "capsule",
+      "theme": "gray",
+      "x": 0,
+      "y": 0,
+      "label": "ES集群\n[检索]"
+    },
+    {
+      "id": "external_logistics",
+      "type": "cloud",
+      "theme": "c4-context",
+      "x": 0,
+      "y": 0,
+      "label": "外部物流API"
+    }
+  ],
+  "connections": [
+    {
+      "from": "gateway",
+      "to": "auth",
+      "label": "鉴权请求",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "gateway",
+      "to": "order",
+      "label": "下单请求",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "gateway",
+      "to": "payment",
+      "label": "支付请求",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "auth",
+      "to": "mysql_main",
+      "label": "读写",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "order",
+      "to": "mysql_main",
+      "label": "读写",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "order",
+      "to": "redis",
+      "label": "缓存",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "order",
+      "to": "mq",
+      "label": "发送事件",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "payment",
+      "to": "mysql_main",
+      "label": "读写",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "payment",
+      "to": "mq",
+      "label": "回调事件",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "mq",
+      "to": "fulfillment",
+      "label": "消费事件",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "fulfillment",
+      "to": "external_logistics",
+      "label": "推送发货",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "fulfillment",
+      "to": "mysql_slave",
+      "label": "只读",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "order",
+      "to": "es",
+      "label": "订单索引",
+      "curve": "bezier",
+      "animate": true
+    }
+  ]
+}

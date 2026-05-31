@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "dagre": "^0.8.5",
     "lucide-react": "^1.17.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/dagre": "^0.7.54",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

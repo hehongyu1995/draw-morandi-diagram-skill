@@ -74,6 +74,7 @@ export interface DiagramGroup {
 
 export interface DiagramSpec {
   type?: 'sequence';
+  autoLayout?: boolean;
   width?: number;
   height?: number;
   nodes?: DiagramNode[];
