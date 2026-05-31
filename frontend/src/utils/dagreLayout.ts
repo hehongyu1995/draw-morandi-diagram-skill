@@ -45,6 +45,23 @@ export function computeAutoLayout(data: DiagramSpec): DiagramSpec {
     return node;
   });
 
+  // Read back edge routing points for orthogonal connections
+  const updatedConnections = data.connections?.map((conn) => {
+    if (conn.routing === 'orthogonal') {
+      const edge = g.edge(conn.from, conn.to);
+      if (edge && edge.points && edge.points.length >= 2) {
+        return {
+          ...conn,
+          points: edge.points.map((p: { x: number; y: number }) => ({
+            x: Math.round(p.x),
+            y: Math.round(p.y),
+          })),
+        };
+      }
+    }
+    return conn;
+  });
+
   // Auto-size canvas
   const graphLabel = g.graph();
   const canvasWidth = Math.max(Math.ceil(graphLabel.width || 0) + 60, 600);
@@ -53,6 +70,7 @@ export function computeAutoLayout(data: DiagramSpec): DiagramSpec {
   return {
     ...data,
     nodes: updatedNodes,
+    connections: updatedConnections,
     width: canvasWidth,
     height: canvasHeight,
     autoLayout: false, // Strip the flag after layout so drags don't re-trigger

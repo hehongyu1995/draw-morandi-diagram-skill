@@ -8,6 +8,7 @@ import { SvgDefs } from '../SvgDefs';
 import { SvgLabel } from '../SvgLabel';
 import { getConnectionEndpoints, getEdgeSideOfPoint } from '../geometry/connections';
 import { getNodeDimensions } from '../../../utils/nodeDimensions';
+import { pathMidpoint } from '../../../utils/pathMidpoint';
 
 type DraggedAnchor = {
   connIdx: number;
@@ -208,7 +209,17 @@ export function FlowchartCanvas({
             let d: string;
             let mx: number;
             let my: number;
-            if (conn.curve === 'bezier') {
+
+            // Orthogonal routing using pre-computed dagre points
+            if (conn.routing === 'orthogonal' && conn.points && conn.points.length >= 2) {
+              const pts = conn.points;
+              d = pts.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
+
+              // Label at the path-length midpoint (50% of total path length)
+              const { mx: midX, my: midY } = pathMidpoint(pts);
+              mx = midX;
+              my = midY;
+            } else if (conn.curve === 'bezier') {
               const dx = x2 - x1;
               const dy = y2 - y1;
               const hasOffset = fromOff[0] !== 0 || fromOff[1] !== 0 || toOff[0] !== 0 || toOff[1] !== 0;

@@ -17,12 +17,14 @@ export interface Connection {
   label?: string;
   lineType?: 'solid' | 'dashed' | 'dotted';
   curve?: 'straight' | 'bezier';
+  routing?: 'bezier' | 'orthogonal';
   fromOffset?: [number, number];
   toOffset?: [number, number];
   animate?: boolean;
   curvature?: number;
   fromCurvature?: number;
   toCurvature?: number;
+  points?: Array<{ x: number; y: number }>;
 }
 
 export interface Participant {
