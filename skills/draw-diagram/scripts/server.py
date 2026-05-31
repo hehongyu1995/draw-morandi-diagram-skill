@@ -4,6 +4,8 @@ import sys
 import os
 import glob
 import shutil
+import threading
+import time
 from urllib.parse import urlparse, parse_qs
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
@@ -136,6 +138,111 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                           self.log_date_time_string(),
                           format%args))
 
+def do_render(args):
+    """Headless render mode: start a temporary server and screenshot the diagram with Playwright."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        print("Error: playwright is required for render mode.")
+        print("Install it with: pip install playwright && playwright install chromium")
+        sys.exit(1)
+
+    # Determine paths
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    skill_dir = os.path.dirname(script_dir)
+    repo_root = os.path.dirname(os.path.dirname(skill_dir))
+    
+    dist_dir = os.path.join(repo_root, 'frontend', 'dist')
+    legacy_web_dir = os.path.join(skill_dir, 'resources')
+    default_web_dir = dist_dir if os.path.exists(dist_dir) else legacy_web_dir
+
+    web_dir = os.path.abspath(args.web_dir) if args.web_dir else default_web_dir
+    workspace_dir = os.path.abspath(args.dir)
+
+    if not os.path.exists(web_dir):
+        print(f"Error: web resource directory not found at: {web_dir}")
+        sys.exit(1)
+
+    # Resolve the diagram file
+    render_file = os.path.abspath(args.render)
+    if not os.path.exists(render_file):
+        print(f"Error: render file not found: {render_file}")
+        sys.exit(1)
+
+    output_path = os.path.abspath(args.output) if args.output else os.path.join(os.getcwd(), 'output.png')
+
+    # Start server on a random port
+    server_address = ('127.0.0.1', 0)
+    httpd = http.server.HTTPServer(server_address, CustomHandler)
+    port = httpd.server_address[1]
+    
+    httpd.workspace_dir = workspace_dir
+    httpd.active_file = render_file
+    httpd.web_dir = web_dir
+    httpd.port = port
+
+    # Start server in a background thread
+    server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    server_thread.start()
+    time.sleep(0.3)  # Brief wait for server to be ready
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            
+            # Navigate to the app
+            page.goto(f"http://127.0.0.1:{port}/", wait_until="networkidle")
+            
+            # Wait for the file select dropdown to be populated
+            file_select = page.locator("select#file-select")
+            file_select.wait_for(state="attached", timeout=10000)
+            
+            # Wait for at least one option besides the initial placeholder
+            page.wait_for_function(
+                "() => document.querySelector('select#file-select')?.options?.length > 0",
+                timeout=15000
+            )
+            
+            # Get the basename of the render file
+            target_filename = os.path.basename(render_file)
+            
+            # Select the file in the dropdown
+            file_select.select_option(target_filename)
+            
+            # Trigger change event so React picks it up
+            page.evaluate("""
+                () => {
+                    const sel = document.querySelector('select#file-select');
+                    if (sel) {
+                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
+            """)
+            
+            # Wait for the SVG to render (id="svg-render")
+            try:
+                page.wait_for_selector("#svg-render", timeout=15000)
+            except Exception:
+                # If no SVG appears, still try to screenshot whatever is on the page
+                print("Warning: SVG render element not detected, taking screenshot of page state")
+            
+            # Small extra wait for rendering to finish
+            page.wait_for_timeout(1000)
+            
+            # Take screenshot of the entire page
+            page.screenshot(path=output_path, full_page=True)
+            
+            print(f"Headless render complete: {output_path}")
+            
+            browser.close()
+    finally:
+        # Shutdown the server
+        httpd.shutdown()
+
+    sys.exit(0)
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="FlowCraft Live Preview Server")
@@ -143,7 +250,14 @@ if __name__ == '__main__':
     parser.add_argument('--file', default=None, help="Directly specify a single diagram JSON file to render")
     parser.add_argument('--web-dir', default=None, help="Directory containing web assets (index.html, app.js, styles.css)")
     parser.add_argument('--port', type=int, default=8000, help="Port to run the server on (defaults to 8000)")
+    parser.add_argument('--render', default=None, help="Path to a diagram JSON file for headless rendering via Playwright")
+    parser.add_argument('--output', default=None, help="Output PNG path for headless render mode (default: output.png)")
     args = parser.parse_args()
+
+    # If --render is passed, enter headless render mode
+    if args.render:
+        do_render(args)
+        sys.exit(0)
 
     # Determine default paths relative to script location
     script_dir = os.path.dirname(os.path.abspath(__file__))
