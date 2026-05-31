@@ -130,11 +130,12 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
   * `theme`: Optional group color theme override (`"red"` | `"green"` | `"blue"` | `"gray"` | C4 themes).
 * **Auto Layout**: Set `autoLayout: true` at the root level to automatically position nodes using dagre.
   The flag stays `true`; manual drag positions are persisted separately in `layout.overrides.nodes` and applied
-  on top of computed layout positions. Direction is LR (left-to-right); node separation and rank separation are
-  configurable through the optional `layout` object. When combined with `routing: "orthogonal"` on connections,
+  on top of computed layout positions. Direction is TB (top-to-bottom) by default, which reads naturally for
+  most workflows; set `"LR"` for left-to-right. Node separation and rank separation are configurable through
+  the optional `layout` object. When combined with `routing: "orthogonal"` on connections,
   routing points are also auto-computed unless layout constraints move nodes after dagre.
 * **Layout Config**:
-  * `direction`: Optional dagre direction, `"LR"` (default) or `"TB"`.
+  * `direction`: Optional dagre direction, `"TB"` (default) or `"LR"`.
   * `nodesep`, `ranksep`, `marginx`, `marginy`: Optional dagre spacing overrides.
   * `constraints`: Optional layout hints. Supported Phase 1 constraints:
     * `{ "type": "inline", "chain": ["A", "B", "C"] }`: Keep nodes ordered in a chain.
@@ -142,6 +143,10 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
     * `{ "type": "leftOf", "nodeId": "A", "refNodeId": "B" }`: Prefer A to the left of B.
     * `{ "type": "above", "nodeId": "A", "refNodeId": "B" }`: Prefer A above B.
     * `{ "type": "below", "nodeId": "A", "refNodeId": "B" }`: Prefer A below B.
+  * In TB mode, use `leftOf` / `rightOf` for branch positioning to the left or right of the main chain.
+    Use `above` / `below` only for vertical offset adjustments.
+  * In LR mode, use `above` / `below` for branch positioning above or below the main chain.
+    Use `leftOf` / `rightOf` for horizontal offset adjustments.
   * Constraints are hints, not hard solver constraints. Invalid node IDs, self references, and cyclic ordering hints
     are ignored with console warnings.
 * **Layout Overrides**:
@@ -158,19 +163,19 @@ Auto layout with constraints example:
 {
   "autoLayout": true,
   "layout": {
-    "direction": "LR",
-    "nodesep": 60,
-    "ranksep": 90,
+    "direction": "TB",
+    "nodesep": 80,
+    "ranksep": 80,
     "constraints": [
-      { "type": "inline", "chain": ["start", "process", "done"] },
-      { "type": "above", "nodeId": "exception", "refNodeId": "process" }
+      { "type": "inline", "chain": ["start", "process", "review", "done"] },
+      { "type": "rightOf", "nodeId": "exception", "refNodeId": "process" }
     ]
   },
   "nodes": [
-    { "id": "start", "type": "circle", "theme": "red", "label": "Start" },
-    { "id": "process", "type": "rect", "theme": "blue", "label": "Process" },
-    { "id": "exception", "type": "capsule", "theme": "gray", "label": "Exception" },
-    { "id": "done", "type": "circle", "theme": "green", "label": "Done" }
+    { "id": "start", "type": "circle", "theme": "red", "label": "开始" },
+    { "id": "process", "type": "rect", "theme": "blue", "width": 120, "height": 55, "label": "处理" },
+    { "id": "exception", "type": "capsule", "theme": "gray", "width": 130, "height": 50, "label": "异常流程" },
+    { "id": "done", "type": "circle", "theme": "green", "label": "完成" }
   ],
   "connections": [
     { "from": "start", "to": "process", "curve": "bezier" },
@@ -181,10 +186,25 @@ Auto layout with constraints example:
 ```
 
 When generating flowcharts, prefer `autoLayout: true` with `layout.constraints`. Do not calculate pixel coordinates
-unless the user explicitly requests manual layout. Use `inline` for the main ordered path, `above` / `below` for
-branches, and `leftOf` / `rightOf` only when a pair relationship is clearer than a chain. Do not hand tune
+unless the user explicitly requests manual layout. Use `inline` for the main ordered path. In TB mode, use
+`leftOf` / `rightOf` for branches; in LR mode, use `above` / `below` for branches. Do not hand tune
 `fromOffset`, `toOffset`, or curvature fields in auto-layout mode unless manual visual polish is requested.
 Do not author `layout.overrides`; those are reserved for human drag tweaks in the UI.
+
+### Auto Layout vs Manual Layout
+
+Auto layout (`autoLayout: true`) is best suited for **simple to moderately complex diagrams** (5-12 nodes,
+1-2 branch levels). It produces clean results with minimal input effort.
+
+For **complex diagrams** (15+ nodes, 3+ branch levels, multiple groups with nested members),
+**manual layout** (hand-written x/y coordinates, `autoLayout: false` or omitted) produces
+significantly better results. Manual layout gives full control over spacing, alignment, and
+branch separation, avoiding the line crossing and node crowding issues that dagre struggles
+with at scale.
+
+**Rule of thumb:**
+- ≤12 nodes, simple linear flow with 1-2 branches → autoLayout with TB direction
+- 15+ nodes, multiple branches, nested groups → manual layout with hand-crafted coordinates
 
 ---
 
