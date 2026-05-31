@@ -130,8 +130,53 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
   * `theme`: Optional group color theme override (`"red"` | `"green"` | `"blue"` | `"gray"` | C4 themes).
 * **Auto Layout**: Set `autoLayout: true` at the root level to automatically position nodes using dagre.
   After layout runs, the flag resets to `false` to allow manual re-positioning. Direction is LR (left-to-right);
-  node separation and rank separation are configurable. When combined with `routing: "orthogonal"` on
-  connections, routing points are also auto-computed.
+  node separation and rank separation are configurable through the optional `layout` object. When combined with
+  `routing: "orthogonal"` on connections, routing points are also auto-computed unless layout constraints move
+  nodes after dagre.
+* **Layout Config**:
+  * `direction`: Optional dagre direction, `"LR"` (default) or `"TB"`.
+  * `nodesep`, `ranksep`, `marginx`, `marginy`: Optional dagre spacing overrides.
+  * `constraints`: Optional layout hints. Supported Phase 1 constraints:
+    * `{ "type": "inline", "chain": ["A", "B", "C"] }`: Keep nodes ordered in a chain.
+    * `{ "type": "rightOf", "nodeId": "A", "refNodeId": "B" }`: Prefer A to the right of B.
+    * `{ "type": "leftOf", "nodeId": "A", "refNodeId": "B" }`: Prefer A to the left of B.
+    * `{ "type": "above", "nodeId": "A", "refNodeId": "B" }`: Prefer A above B.
+    * `{ "type": "below", "nodeId": "A", "refNodeId": "B" }`: Prefer A below B.
+  * Constraints are hints, not hard solver constraints. Invalid node IDs, self references, and cyclic ordering hints
+    are ignored with console warnings.
+
+Auto layout with constraints example:
+
+```json
+{
+  "autoLayout": true,
+  "layout": {
+    "direction": "LR",
+    "nodesep": 60,
+    "ranksep": 90,
+    "constraints": [
+      { "type": "inline", "chain": ["start", "process", "done"] },
+      { "type": "above", "nodeId": "exception", "refNodeId": "process" }
+    ]
+  },
+  "nodes": [
+    { "id": "start", "type": "circle", "theme": "red", "label": "Start" },
+    { "id": "process", "type": "rect", "theme": "blue", "label": "Process" },
+    { "id": "exception", "type": "capsule", "theme": "gray", "label": "Exception" },
+    { "id": "done", "type": "circle", "theme": "green", "label": "Done" }
+  ],
+  "connections": [
+    { "from": "start", "to": "process", "curve": "bezier" },
+    { "from": "process", "to": "done", "curve": "bezier" },
+    { "from": "process", "to": "exception", "curve": "bezier" }
+  ]
+}
+```
+
+When generating flowcharts, prefer `autoLayout: true` with `layout.constraints`. Do not calculate pixel coordinates
+unless the user explicitly requests manual layout. Use `inline` for the main ordered path, `above` / `below` for
+branches, and `leftOf` / `rightOf` only when a pair relationship is clearer than a chain. Do not hand tune
+`fromOffset`, `toOffset`, or curvature fields in auto-layout mode unless manual visual polish is requested.
 
 ---
 

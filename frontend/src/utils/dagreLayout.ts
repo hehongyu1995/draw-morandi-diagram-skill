@@ -1,5 +1,6 @@
 import dagre from 'dagre';
 import type { DiagramSpec } from '../types';
+import { applyConstraintHints, normalizeConstrainedPositions } from './applyLayoutConstraints';
 import { getNodeDimensions } from './nodeDimensions';
 
 export function computeAutoLayout(data: DiagramSpec): DiagramSpec {
@@ -10,11 +11,11 @@ export function computeAutoLayout(data: DiagramSpec): DiagramSpec {
 
   const g = new dagre.graphlib.Graph();
   g.setGraph({
-    rankdir: 'LR',
-    nodesep: 60,
-    ranksep: 80,
-    marginx: 40,
-    marginy: 40,
+    rankdir: data.layout?.direction || 'LR',
+    nodesep: data.layout?.nodesep ?? 60,
+    ranksep: data.layout?.ranksep ?? 80,
+    marginx: data.layout?.marginx ?? 40,
+    marginy: data.layout?.marginy ?? 40,
   });
   g.setDefaultEdgeLabel(() => ({}));
 
@@ -29,11 +30,13 @@ export function computeAutoLayout(data: DiagramSpec): DiagramSpec {
     g.setEdge(conn.from, conn.to, { label: conn.label || '' });
   });
 
+  const constraintPlan = applyConstraintHints(data, g);
+
   // Run layout
   dagre.layout(g);
 
   // Read back computed positions
-  const updatedNodes = data.nodes.map((node) => {
+  const dagreNodes = data.nodes.map((node) => {
     const dagreNode = g.node(node.id);
     if (dagreNode) {
       return {
@@ -44,9 +47,15 @@ export function computeAutoLayout(data: DiagramSpec): DiagramSpec {
     }
     return node;
   });
+  const updatedNodes = normalizeConstrainedPositions(dagreNodes, constraintPlan);
 
   // Read back edge routing points for orthogonal connections
   const updatedConnections = data.connections?.map((conn) => {
+    if (constraintPlan.hasConstraints && conn.routing === 'orthogonal') {
+      const { points: _points, ...rest } = conn;
+      return rest;
+    }
+
     if (conn.routing === 'orthogonal') {
       const edge = g.edge(conn.from, conn.to);
       if (edge && edge.points && edge.points.length >= 2) {
@@ -64,8 +73,22 @@ export function computeAutoLayout(data: DiagramSpec): DiagramSpec {
 
   // Auto-size canvas
   const graphLabel = g.graph();
-  const canvasWidth = Math.max(Math.ceil(graphLabel.width || 0) + 60, 600);
-  const canvasHeight = Math.max(Math.ceil(graphLabel.height || 0) + 60, 300);
+  const nodeBounds = updatedNodes.reduce(
+    (acc, node) => {
+      const { w, h } = getNodeDimensions(node);
+      return {
+        maxX: Math.max(acc.maxX, node.x + w / 2),
+        maxY: Math.max(acc.maxY, node.y + h / 2),
+      };
+    },
+    { maxX: 0, maxY: 0 }
+  );
+  const canvasWidth = constraintPlan.hasConstraints
+    ? Math.max(Math.ceil(nodeBounds.maxX) + 60, 600)
+    : Math.max(Math.ceil(graphLabel.width || 0) + 60, 600);
+  const canvasHeight = constraintPlan.hasConstraints
+    ? Math.max(Math.ceil(nodeBounds.maxY) + 60, 300)
+    : Math.max(Math.ceil(graphLabel.height || 0) + 60, 300);
 
   return {
     ...data,

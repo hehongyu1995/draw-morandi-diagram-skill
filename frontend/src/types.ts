@@ -11,6 +11,30 @@ export interface DiagramNode {
   label: string;
 }
 
+export type LayoutDirection = 'LR' | 'TB';
+
+export type ConstraintType = 'inline' | 'leftOf' | 'rightOf' | 'above' | 'below';
+
+export type LayoutConstraint =
+  | {
+      type: 'inline';
+      chain: string[];
+    }
+  | {
+      type: Exclude<ConstraintType, 'inline'>;
+      nodeId: string;
+      refNodeId: string;
+    };
+
+export interface LayoutConfig {
+  direction?: LayoutDirection;
+  constraints?: LayoutConstraint[];
+  nodesep?: number;
+  ranksep?: number;
+  marginx?: number;
+  marginy?: number;
+}
+
 export interface Connection {
   from: string;
   to: string;
@@ -78,6 +102,7 @@ export interface DiagramGroup {
 export interface DiagramSpec {
   type?: 'sequence';
   autoLayout?: boolean;
+  layout?: LayoutConfig;
   width?: number;
   height?: number;
   nodes?: DiagramNode[];
