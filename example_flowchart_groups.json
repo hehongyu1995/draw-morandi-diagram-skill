@@ -46,8 +46,8 @@
       "id": "user_db",
       "type": "database",
       "theme": "green",
-      "x": 742,
-      "y": 148,
+      "x": 743,
+      "y": 151,
       "width": 110,
       "height": 70,
       "label": "User DB"
