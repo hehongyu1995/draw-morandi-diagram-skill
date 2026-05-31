@@ -130,12 +130,16 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
   * `theme`: Optional group color theme override (`"red"` | `"green"` | `"blue"` | `"gray"` | C4 themes).
 * **Auto Layout**: Set `autoLayout: true` at the root level to automatically position nodes using dagre.
   The flag stays `true`; manual drag positions are persisted separately in `layout.overrides.nodes` and applied
-  on top of computed layout positions. Direction is TB (top-to-bottom) by default, which reads naturally for
-  most workflows; set `"LR"` for left-to-right. Node separation and rank separation are configurable through
-  the optional `layout` object. When combined with `routing: "orthogonal"` on connections,
+  on top of computed layout positions. Choose the direction based on diagram content:
+  - `"LR"` (left-to-right): Best for workflow pipelines, agent interaction flows, architecture diagrams,
+    data pipelines, and time-series processes.
+  - `"TB"` (top-to-bottom): Best for business approval processes, SOPs, decision trees,
+    organizational hierarchies, and traditional vertical process flows.
+  Node separation and rank separation are configurable through the optional `layout` object. When combined
+  with `routing: "orthogonal"` on connections,
   routing points are also auto-computed unless layout constraints move nodes after dagre.
 * **Layout Config**:
-  * `direction`: Optional dagre direction, `"TB"` (default) or `"LR"`.
+  * `direction`: Optional dagre direction: `"LR"` for left-to-right, `"TB"` for top-to-bottom.
   * `nodesep`, `ranksep`, `marginx`, `marginy`: Optional dagre spacing overrides.
   * `constraints`: Optional layout hints. Supported Phase 1 constraints:
     * `{ "type": "inline", "chain": ["A", "B", "C"] }`: Keep nodes ordered in a chain.
@@ -203,8 +207,10 @@ branch separation, avoiding the line crossing and node crowding issues that dagr
 with at scale.
 
 **Rule of thumb:**
-- ≤12 nodes, simple linear flow with 1-2 branches → autoLayout with TB direction
+- ≤12 nodes, simple linear flow → autoLayout (direction based on content: LR for pipelines/agents, TB for business/SOP)
 - 15+ nodes, multiple branches, nested groups → manual layout with hand-crafted coordinates
+- Agent workflows and architecture diagrams → prefer LR direction
+- Business processes, SOPs, approvals → prefer TB direction
 
 ---
 
