@@ -1,0 +1,61 @@
+{
+  "autoLayout": true,
+  "layout": {
+    "direction": "LR",
+    "nodesep": 60,
+    "ranksep": 90,
+    "constraints": [
+      { "type": "inline", "chain": ["start", "assess", "assess_fault", "photos_move", "insurance", "repair", "end"] },
+      { "type": "inline", "chain": ["save_people", "call_police", "police_handle"] },
+      { "type": "above", "nodeId": "save_people", "refNodeId": "assess_fault" },
+      { "type": "above", "nodeId": "call_police", "refNodeId": "photos_move" },
+      { "type": "above", "nodeId": "police_handle", "refNodeId": "repair" }
+    ],
+    "overrides": {
+      "nodes": {
+        "call_police": { "x": 1020, "y": 80 },
+        "police_handle": { "x": 1020, "y": 180 },
+        "assess_fault": { "x": 340, "y": 350 }
+      }
+    }
+  },
+  "nodes": [
+    { "id": "start", "type": "circle", "theme": "red", "label": "事故发生" },
+    { "id": "assess", "type": "rect", "theme": "red", "width": 120, "height": 55, "label": "判断事故情况" },
+    { "id": "save_people", "type": "capsule", "theme": "red", "width": 150, "height": 50, "label": "先救人\n叫救护车" },
+    { "id": "assess_fault", "type": "rect", "theme": "blue", "width": 120, "height": 55, "label": "判断责任" },
+    { "id": "photos_move", "type": "capsule", "theme": "blue", "width": 125, "height": 48, "label": "拍照挪车" },
+    { "id": "call_police", "type": "capsule", "theme": "gray", "width": 120, "height": 50, "label": "报交警\n122" },
+    { "id": "police_handle", "type": "capsule", "theme": "gray", "width": 120, "height": 48, "label": "交警处理" },
+    { "id": "insurance", "type": "capsule", "theme": "gray", "width": 110, "height": 48, "label": "报保险" },
+    { "id": "repair", "type": "capsule", "theme": "blue", "width": 115, "height": 48, "label": "定损维修" },
+    { "id": "end", "type": "circle", "theme": "green", "label": "理赔结案" }
+  ],
+  "connections": [
+    { "from": "start", "to": "assess", "curve": "bezier", "animate": true },
+    { "from": "assess", "to": "assess_fault", "curve": "bezier", "label": "无伤亡", "animate": true },
+    { "from": "assess", "to": "save_people", "curve": "bezier", "label": "有伤亡", "animate": true },
+    { "from": "save_people", "to": "call_police", "curve": "bezier", "label": "立即报警", "animate": true },
+    { "from": "call_police", "to": "police_handle", "curve": "bezier", "animate": true },
+    { "from": "police_handle", "to": "repair", "curve": "bezier", "label": "交警定责", "animate": true },
+    { "from": "assess_fault", "to": "photos_move", "curve": "bezier", "label": "责任明确", "animate": true },
+    { "from": "assess_fault", "to": "call_police", "curve": "bezier", "label": "责任争议", "animate": true },
+    { "from": "photos_move", "to": "insurance", "curve": "bezier", "animate": true },
+    { "from": "insurance", "to": "repair", "curve": "bezier", "animate": true },
+    { "from": "repair", "to": "end", "curve": "bezier", "animate": true }
+  ],
+  "groups": [
+    {
+      "id": "scene_group",
+      "label": "现场处理",
+      "nodeIds": ["assess", "save_people", "assess_fault", "photos_move", "call_police", "police_handle"],
+      "theme": "gray"
+    },
+    {
+      "id": "claim_group",
+      "label": "保险理赔流程",
+      "nodeIds": ["insurance", "repair", "end"],
+      "theme": "green"
+    }
+  ]
+}
