@@ -1,0 +1,115 @@
+{
+  "width": 900,
+  "height": 520,
+  "nodes": [
+    {
+      "id": "controller",
+      "type": "rect",
+      "theme": "c4-component",
+      "x": 120,
+      "y": 150,
+      "width": 140,
+      "height": 60,
+      "label": "OrderController\n[REST]"
+    },
+    {
+      "id": "service",
+      "type": "rect",
+      "theme": "c4-component",
+      "x": 350,
+      "y": 150,
+      "width": 140,
+      "height": 60,
+      "label": "OrderService\n[业务层]"
+    },
+    {
+      "id": "repo",
+      "type": "rect",
+      "theme": "c4-component",
+      "x": 580,
+      "y": 150,
+      "width": 140,
+      "height": 60,
+      "label": "OrderRepository\n[数据访问]"
+    },
+    {
+      "id": "mq",
+      "type": "capsule",
+      "theme": "c4-component",
+      "x": 350,
+      "y": 330,
+      "width": 140,
+      "height": 60,
+      "label": "OrderMQPublisher\n[消息]"
+    },
+    {
+      "id": "validator",
+      "type": "rect",
+      "theme": "c4-component",
+      "x": 120,
+      "y": 330,
+      "width": 140,
+      "height": 60,
+      "label": "OrderValidator\n[校验]"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "theme": "c4-component",
+      "x": 580,
+      "y": 330,
+      "label": "order_db\n[MySQL]"
+    }
+  ],
+  "connections": [
+    {
+      "from": "controller",
+      "to": "validator",
+      "label": "校验请求",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "validator",
+      "to": "service",
+      "label": "校验通过",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "service",
+      "to": "repo",
+      "label": "持久化订单",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "repo",
+      "to": "db",
+      "label": "INSERT",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "service",
+      "to": "mq",
+      "label": "发送事件",
+      "curve": "bezier",
+      "animate": true
+    }
+  ],
+  "groups": [
+    {
+      "id": "api_layer",
+      "label": "C4 Level 3: Component Diagram — 订单模块",
+      "nodeIds": ["controller", "validator", "service", "repo", "mq"],
+      "theme": "c4-component"
+    },
+    {
+      "id": "data_store",
+      "label": "持久化",
+      "nodeIds": ["db"],
+      "theme": "c4-code"
+    }
+  ]
+}

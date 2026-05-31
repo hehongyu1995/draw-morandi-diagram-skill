@@ -1,9 +1,8 @@
 import type { DiagramNode } from '../../../types';
+import { getNodeDimensions } from '../../../utils/nodeDimensions';
 
 export function getNodeEdge(node: DiagramNode, direction: string) {
-  const radius = node.type === 'circle' ? 25 : 0;
-  const w = node.type === 'circle' ? radius * 2 : (node.width || 110);
-  const h = node.type === 'circle' ? radius * 2 : (node.height || 50);
+  const { w, h } = getNodeDimensions(node);
 
   if (direction === 'right') return { x: node.x + w / 2, y: node.y };
   if (direction === 'left') return { x: node.x - w / 2, y: node.y };
@@ -13,8 +12,7 @@ export function getNodeEdge(node: DiagramNode, direction: string) {
 }
 
 export function getEdgeSideOfPoint(x: number, y: number, node: DiagramNode): 'top' | 'bottom' | 'left' | 'right' {
-  const w = node.type === 'circle' ? 50 : (node.width || 110);
-  const h = node.type === 'circle' ? 50 : (node.height || 50);
+  const { w, h } = getNodeDimensions(node);
 
   const distTop = Math.abs(y - (node.y - h / 2));
   const distBottom = Math.abs(y - (node.y + h / 2));
@@ -38,8 +36,7 @@ export function getConnectionEndpoints(
   const hasToOffset = toOffset[0] !== 0 || toOffset[1] !== 0;
 
   function getOffsetAnchor(node: DiagramNode, offset: [number, number]) {
-    const w = node.type === 'circle' ? 50 : (node.width || 110);
-    const h = node.type === 'circle' ? 50 : (node.height || 50);
+    const { w, h } = getNodeDimensions(node);
     let x = node.x;
     let y = node.y;
     if (Math.abs(offset[0]) > Math.abs(offset[1])) {
@@ -90,8 +87,7 @@ export function getNodeSnapPort(
   node: DiagramNode,
   snapDistance: number = 30
 ) {
-  const w = node.type === 'circle' ? 50 : (node.width || 110);
-  const h = node.type === 'circle' ? 50 : (node.height || 50);
+  const { w, h } = getNodeDimensions(node);
 
   const ports: Array<{
     portName: 'top' | 'bottom' | 'left' | 'right' | 'auto';

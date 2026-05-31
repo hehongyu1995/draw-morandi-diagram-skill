@@ -1,0 +1,77 @@
+{
+  "width": 900,
+  "height": 500,
+  "nodes": [
+    {
+      "id": "user",
+      "type": "person",
+      "theme": "c4-context",
+      "x": 120,
+      "y": 250,
+      "label": "终端用户\n电商消费者"
+    },
+    {
+      "id": "system",
+      "type": "rect",
+      "theme": "c4-container",
+      "x": 400,
+      "y": 250,
+      "width": 200,
+      "height": 80,
+      "label": "电商系统\n[核心系统]"
+    },
+    {
+      "id": "payment",
+      "type": "cloud",
+      "theme": "c4-context",
+      "x": 700,
+      "y": 180,
+      "label": "支付网关\n[外部系统]"
+    },
+    {
+      "id": "logistics",
+      "type": "cloud",
+      "theme": "c4-context",
+      "x": 700,
+      "y": 350,
+      "label": "物流平台\n[外部系统]"
+    }
+  ],
+  "connections": [
+    {
+      "from": "user",
+      "to": "system",
+      "label": "浏览、下单、支付",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "system",
+      "to": "payment",
+      "label": "调用支付接口",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "system",
+      "to": "logistics",
+      "label": "推送发货信息",
+      "curve": "bezier",
+      "animate": true
+    }
+  ],
+  "groups": [
+    {
+      "id": "our_systems",
+      "label": "C4 Level 1: System Context",
+      "nodeIds": ["system"],
+      "theme": "c4-container"
+    },
+    {
+      "id": "external_systems",
+      "label": "外部系统",
+      "nodeIds": ["payment", "logistics"],
+      "theme": "c4-context"
+    }
+  ]
+}

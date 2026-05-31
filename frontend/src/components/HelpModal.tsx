@@ -29,7 +29,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
           <li><strong>nodes</strong>: List of nodes.
             <ul>
               <li><code>id</code>: Unique identifier.</li>
-              <li><code>type</code>: <code>circle</code> | <code>rect</code> | <code>capsule</code> | <code>database</code> | <code>file</code>.</li>
+              <li><code>type</code>: <code>circle</code> | <code>rect</code> | <code>capsule</code> | <code>database</code> | <code>file</code> | <code>person</code> | <code>cloud</code>.</li>
               <li><code>theme</code>: <code>red</code> | <code>green</code> | <code>blue</code> | <code>gray</code>.</li>
               <li><code>x</code>, <code>y</code>: Coordinates of node center.</li>
               <li><code>width</code>, <code>height</code>: Dimensions.</li>

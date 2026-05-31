@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import type { DiagramSpec } from '../../../types';
 import { getNodeSnapPort } from '../geometry/connections';
+import { getNodeDimensions } from '../../../utils/nodeDimensions';
 
 export type MarqueeState = {
   startX: number;
@@ -42,8 +43,9 @@ function isNodeInMarquee(
 ) {
   const x = node.x ?? 0;
   const y = isSequence ? (node.y ?? 50) : (node.y ?? 0);
-  const w = isSequence ? (node.width || 120) : (node.type === 'circle' ? 50 : (node.width || 110));
-  const h = isSequence ? (node.height || 45) : (node.type === 'circle' ? 50 : (node.height || 50));
+  const { w, h } = isSequence
+    ? { w: node.width || 120, h: node.height || 45 }
+    : getNodeDimensions(node);
   const left = x - w / 2;
   const right = x + w / 2;
   const top = y - h / 2;

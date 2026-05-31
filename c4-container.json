@@ -1,0 +1,120 @@
+{
+  "width": 900,
+  "height": 550,
+  "nodes": [
+    {
+      "id": "user",
+      "type": "person",
+      "theme": "c4-context",
+      "x": 90,
+      "y": 250,
+      "label": "消费者"
+    },
+    {
+      "id": "webapp",
+      "type": "rect",
+      "theme": "c4-container",
+      "x": 310,
+      "y": 130,
+      "width": 160,
+      "height": 70,
+      "label": "Web应用\n[Next.js]"
+    },
+    {
+      "id": "mobile",
+      "type": "rect",
+      "theme": "c4-container",
+      "x": 310,
+      "y": 370,
+      "width": 160,
+      "height": 70,
+      "label": "移动APP\n[Flutter]"
+    },
+    {
+      "id": "api",
+      "type": "capsule",
+      "theme": "c4-container",
+      "x": 580,
+      "y": 250,
+      "width": 160,
+      "height": 70,
+      "label": "API服务\n[Spring Boot]"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "theme": "c4-container",
+      "x": 780,
+      "y": 180,
+      "label": "主数据库\n[MySQL]"
+    },
+    {
+      "id": "cache",
+      "type": "database",
+      "theme": "c4-container",
+      "x": 780,
+      "y": 360,
+      "label": "缓存\n[Redis]"
+    }
+  ],
+  "connections": [
+    {
+      "from": "user",
+      "to": "webapp",
+      "label": "HTTP访问",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "user",
+      "to": "mobile",
+      "label": "API调用",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "webapp",
+      "to": "api",
+      "label": "REST API",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "mobile",
+      "to": "api",
+      "label": "REST API",
+      "fromOffset": [0, 20],
+      "toOffset": [0, -20],
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "label": "读写数据",
+      "curve": "bezier",
+      "animate": true
+    },
+    {
+      "from": "api",
+      "to": "cache",
+      "label": "缓存查询",
+      "curve": "bezier",
+      "animate": true
+    }
+  ],
+  "groups": [
+    {
+      "id": "frontends",
+      "label": "C4 Level 2: Container Diagram — 前端",
+      "nodeIds": ["webapp", "mobile"],
+      "theme": "c4-container"
+    },
+    {
+      "id": "backend",
+      "label": "后端",
+      "nodeIds": ["api", "db", "cache"],
+      "theme": "c4-container"
+    }
+  ]
+}

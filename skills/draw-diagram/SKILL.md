@@ -12,12 +12,14 @@ Use this skill to draw or generate highly aesthetic flowcharts, architecture dia
 ## 1. Supported Charts
 
 ### A. Flowcharts & Architecture Diagrams
-* **Nodes**: Circular, capsule (stadium), round-rectangular blocks, **database cylinders**, or **folded file documents**.
+* **Nodes**: Circular, capsule (stadium), round-rectangular blocks, **database cylinders**, **folded file documents**, **C4 stick figures**, or **cloud shapes**.
   * `circle`: Circular node.
   * `rect`: Rounded rectangular node.
   * `capsule`: Capsule/stadium shape.
   * `database`: Cylinder model representing database systems.
   * `file`: Folded/dog-eared sheet model representing files and document stores.
+  * `person`: C4-style stick figure (circle head + trapezoidal body). Label renders below the figure. Default 70x90.
+  * `cloud`: Cloud shape representing external systems/services. Label renders below the shape. Default 120x80.
 * **Connections**: Auto-routed straight lines or cubic Bezier curves connecting node borders.
   * **Visual Connection Snap Ports**: Connection endpoints are interactive and draggable. Nodes support 4 cardinal snap ports:
     * Top: `[0, -20]` (offset 20px above top border)
@@ -30,7 +32,7 @@ Use this skill to draw or generate highly aesthetic flowcharts, architecture dia
 * **Line Styles**: Solid (default), dashed (`lineType: "dashed"`), or dotted (`lineType: "dotted"`).
 * **Flow Animations**: Beautiful, direction-aware flowing dot overlays indicating control/data flow direction. Can be configured per connection or toggled globally.
 * **Diagram Group Overlay boundary boxes (Subgraphs/Containers)**: Solid desaturated themed-border container boxes with semi-transparent desaturated background fills (25% opacity) that automatically wrap member nodes and calculate coordinates and sizes dynamically with a default padding layout.
-* **Themes**: Predefined Morandi desaturated color themes (`red`, `green`, `blue`, `gray`).
+* **Themes**: Predefined Morandi desaturated color themes (`red`, `green`, `blue`, `gray`) plus C4 model themes (`c4-context`, `c4-container`, `c4-component`, `c4-code`).
 
 ### B. UML Sequence Diagrams (`type: "sequence"`)
 * **Participants**: Horizontally placed lifelines (automatically spaced if `x` coordinates are omitted).
@@ -97,8 +99,8 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
 
 * **Node Properties**:
   * `id`: Unique identifier (string).
-  * `type`: `"circle"` | `"rect"` | `"capsule"` | `"database"` | `"file"`.
-  * `theme`: `"red"` (Terracotta) | `"green"` (Sage) | `"blue"` (Slate) | `"gray"` (Sand).
+  * `type`: `"circle"` | `"rect"` | `"capsule"` | `"database"` | `"file"` | `"person"` | `"cloud"`.
+  * `theme`: `"red"` (Terracotta) | `"green"` (Sage) | `"blue"` (Slate) | `"gray"` (Sand) | C4 themes: `"c4-context"` | `"c4-container"` | `"c4-component"` | `"c4-code"`.
   * `x`, `y`: Absolute center coordinates.
   * `width`, `height`: Rect/capsule/database/file dimensions (standard: `110x50` for rects).
   * `label`: Text label. Use `\n` or `\\n` for multiline text.
@@ -121,7 +123,7 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
   * `id`: Unique identifier (string).
   * `label`: Group boundary label text.
   * `nodeIds`: Array of node IDs enclosed inside the boundary box (string[]).
-  * `theme`: Optional group color theme override (`"red"` | `"green"` | `"blue"` | `"gray"`).
+  * `theme`: Optional group color theme override (`"red"` | `"green"` | `"blue"` | `"gray"` | C4 themes).
 
 ---
 
@@ -190,6 +192,10 @@ To preserve the warm editorial design, the styling engine uses the following col
 * **Green (Sage)**: bg `#e8ebe4`, border `#c4ceb8`, text `#556f44`
 * **Blue (Slate)**: bg `#e5ebf0`, border `#bccad6`, text `#4b6584`
 * **Gray (Sand)**: bg `#efede8`, border `#d3cecf`, text `#6b645d`
+* **C4 Context (System Level)**: bg `#e3ebf2`, border `#b6cbd8`, text `#3d5f7a`
+* **C4 Container (Application Level)**: bg `#e4ebe8`, border `#b9cdc0`, text `#3d6b52`
+* **C4 Component (Module Level)**: bg `#f3ece0`, border `#e0cfb4`, text `#7d653d`
+* **C4 Code (Class Level)**: bg `#ededf0`, border `#cdcdd6`, text `#5e5a70`
 * **Canvas Background**: `#faf8f5` (warm ivory paper)
 * **Fonts**: `'Newsreader', Georgia, serif` for diagram nodes and `'Inter', sans-serif` for labels.
 
@@ -232,7 +238,52 @@ http://localhost:8000/
 
 ---
 
-## 4. Key Notes & Code Structure
+## 4. C4 Model Diagram Support
+
+The tool supports all 4 levels of [C4 Model](https://c4model.com/) architecture diagrams using the new node types and themes.
+
+### C4 Node Types
+
+| C4 Element | Node Type | Description |
+|---|---|---|
+| Person/User | `person` | Stick figure. Default 70x90. Label below. |
+| Software System | `rect` | Standard rounded rect. |
+| Container (App/Service) | `capsule` or `rect` | Use capsule for runtime processes. |
+| Database | `database` | Cylinder shape. |
+| External System | `cloud` | Cloud shape. Default 120x80. Label below. |
+| Component/Module | `rect` | Standard rounded rect. |
+
+### C4 Theme Mapping
+
+| Theme | C4 Level | When to Use |
+|---|---|---|
+| `c4-context` | Level 1: System Context | Users, external systems, the system boundary |
+| `c4-container` | Level 2: Container | Web apps, APIs, databases, message queues |
+| `c4-component` | Level 3: Component | Controllers, services, repositories |
+| `c4-code` | Level 4: Code | Classes, interfaces, test stubs |
+
+### Included Examples
+
+The following example JSON files are generated in the workspace:
+
+| File | C4 Level | Description |
+|---|---|---|
+| `c4-context.json` | Level 1 | E-commerce system context: users → system → payment gateway + logistics |
+| `c4-container.json` | Level 2 | Web app + mobile app → API → MySQL + Redis |
+| `c4-component.json` | Level 3 | Order module: Controller → Service → Repository → DB + MQ |
+| `c4-code.json` | Level 4 | OrderService interface → Impl + Mock → Repository |
+
+### C4 Drawing Conventions
+
+- **Relationships**: Use solid bezier lines with labels describing the interaction (e.g. "REST API", "calls", "reads/writes")
+- **System Boundaries**: Use `groups` to draw colored boundary boxes around your system vs external systems
+- **External Systems**: Use `cloud` nodes for systems outside your control
+- **Person placement**: Persons go on the left (primary actors) or right (supporting roles)
+- **Animations**: Enable `animate: true` on connections to show data flow direction
+
+---
+
+## 5. Key Notes & Code Structure
 
 * **React State & Local Sync**: State management is handled on the client using Zustand. An automatic file sync loops in the client to catch changes made directly to JSON files by the workspace agent, rendering them immediately.
 * **Disk Synchronization & Auto-Save**: In flowchart view, nodes can be dragged anywhere. The UI pauses background poll intervals during active drags to prevent race conditions. Disk writes are saved on drag release or editor changes.

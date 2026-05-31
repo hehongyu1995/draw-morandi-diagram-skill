@@ -7,6 +7,7 @@ import { SelectionOverlay } from '../SelectionOverlay';
 import { SvgDefs } from '../SvgDefs';
 import { SvgLabel } from '../SvgLabel';
 import { getConnectionEndpoints, getEdgeSideOfPoint } from '../geometry/connections';
+import { getNodeDimensions } from '../../../utils/nodeDimensions';
 
 type DraggedAnchor = {
   connIdx: number;
@@ -91,12 +92,12 @@ export function FlowchartCanvas({
             if (groupNodes.length === 0) return null;
 
             const xValues = groupNodes.map(node => {
-              const w = node.type === 'circle' ? 50 : (node.width || 110);
+              const { w } = getNodeDimensions(node);
               return [node.x - w / 2, node.x + w / 2];
             }).flat();
 
             const yValues = groupNodes.map(node => {
-              const h = node.type === 'circle' ? 50 : (node.height || 50);
+              const { h } = getNodeDimensions(node);
               return [node.y - h / 2, node.y + h / 2];
             }).flat();
 
@@ -145,8 +146,7 @@ export function FlowchartCanvas({
           {/* 1. Draw Nodes */}
           {nodes.map(node => {
             const theme = THEMES[node.theme] || THEMES.gray;
-            const w = node.type === 'circle' ? 50 : (node.width || 110);
-            const h = node.type === 'circle' ? 50 : (node.height || 50);
+            const { w, h } = getNodeDimensions(node);
             return (
               <g key={`node-${node.id}`} className="node-group" id={`node-g-${node.id}`}>
                 <NodeShape
@@ -158,7 +158,12 @@ export function FlowchartCanvas({
                   width={node.width}
                   height={node.height}
                 />
-                <SvgLabel label={node.label} x={node.x} y={node.y} color={theme.text} />
+                <SvgLabel
+                  label={node.label}
+                  x={node.x}
+                  y={node.type === 'person' || node.type === 'cloud' ? node.y + h / 2 + 14 : node.y}
+                  color={theme.text}
+                />
                 {selectedNodeIds.has(node.id) && (
                   node.type === 'circle' ? (
                     <SelectionOverlay shape="circle" x={node.x} y={node.y} />
@@ -217,8 +222,7 @@ export function FlowchartCanvas({
                 const side = x1 < nodeA.x ? 'left' : 'right';
 
                 nodes.forEach(n => {
-                  const nw = n.type === 'circle' ? 50 : (n.width || 110);
-                  const nh = n.type === 'circle' ? 50 : (n.height || 50);
+                  const { w: nw, h: nh } = getNodeDimensions(n);
                   const nTop = n.y - nh / 2;
                   const nBot = n.y + nh / 2;
 
@@ -471,8 +475,7 @@ export function FlowchartCanvas({
             const targetNode = nodeMap.get(targetNodeId);
             if (!targetNode) return null;
 
-            const w = targetNode.type === 'circle' ? 50 : (targetNode.width || 110);
-            const h = targetNode.type === 'circle' ? 50 : (targetNode.height || 50);
+            const { w, h } = getNodeDimensions(targetNode);
 
             const ports = [
               { x: targetNode.x, y: targetNode.y - h / 2 },

@@ -1,9 +1,10 @@
 import React from 'react';
 import { THEMES } from '../constants';
+import { getNodeDimensions } from '../utils/nodeDimensions';
 
 interface NodeShapeProps {
   id: string;
-  type: 'rect' | 'circle' | 'capsule' | 'database' | 'file';
+  type: 'rect' | 'circle' | 'capsule' | 'database' | 'file' | 'person' | 'cloud';
   themeName: string;
   x: number;
   y: number;
@@ -21,8 +22,7 @@ export const NodeShape: React.FC<NodeShapeProps> = ({
   height
 }) => {
   const theme = THEMES[themeName] || THEMES.gray;
-  const w = type === 'circle' ? 50 : (width || 110);
-  const h = type === 'circle' ? 50 : (height || 50);
+  const { w, h } = getNodeDimensions({ type, width, height });
 
   if (type === 'circle') {
     return (
@@ -125,6 +125,74 @@ export const NodeShape: React.FC<NodeShapeProps> = ({
         <path
           d={foldD}
           fill="none"
+          stroke={theme.border}
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+      </g>
+    );
+  }
+
+  if (type === 'person') {
+    const headRadius = Math.min(w * 0.18, h * 0.14);
+    const headCy = y - h * 0.28;
+    const neckY = headCy + headRadius;
+    const hipY = y + h * 0.12;
+    const footY = y + h * 0.42;
+    const armY = y - h * 0.05;
+    const armSpan = w * 0.38;
+    const legSpan = w * 0.28;
+
+    return (
+      <g className="node-shape" data-id={id}>
+        <rect
+          x={x - w / 2}
+          y={y - h / 2}
+          width={w}
+          height={h}
+          fill="transparent"
+          stroke="none"
+          pointerEvents="all"
+        />
+        <circle
+          cx={x}
+          cy={headCy}
+          r={headRadius}
+          fill={theme.bg}
+          stroke={theme.border}
+          strokeWidth="1.8"
+        />
+        <path
+          d={`M ${x} ${neckY} L ${x} ${hipY}
+              M ${x - armSpan} ${armY} L ${x + armSpan} ${armY}
+              M ${x} ${hipY} L ${x - legSpan} ${footY}
+              M ${x} ${hipY} L ${x + legSpan} ${footY}`}
+          fill="none"
+          stroke={theme.border}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+    );
+  }
+
+  if (type === 'cloud') {
+    const rx = w / 2;
+    const ry = h / 2;
+    const cloudPath = `M ${x - rx * 0.5} ${y + ry * 0.6}
+      C ${x - rx * 0.7} ${y + ry * 0.6}, ${x - rx * 0.8} ${y + ry * 0.2}, ${x - rx * 0.55} ${y + ry * 0.1}
+      C ${x - rx * 0.7} ${y - ry * 0.3}, ${x - rx * 0.3} ${y - ry * 0.7}, ${x} ${y - ry * 0.4}
+      C ${x + rx * 0.1} ${y - ry * 0.8}, ${x + rx * 0.5} ${y - ry * 0.7}, ${x + rx * 0.5} ${y - ry * 0.3}
+      C ${x + rx * 0.8} ${y - ry * 0.3}, ${x + rx * 0.8} ${y + ry * 0.2}, ${x + rx * 0.5} ${y + ry * 0.4}
+      C ${x + rx * 0.7} ${y + ry * 0.5}, ${x + rx * 0.6} ${y + ry * 0.6}, ${x + rx * 0.3} ${y + ry * 0.6}
+      Z`;
+
+    return (
+      <g className="node-shape" data-id={id}>
+        <path
+          d={cloudPath}
+          fill={theme.bg}
           stroke={theme.border}
           strokeWidth="1.5"
           strokeLinejoin="round"

@@ -1,0 +1,78 @@
+{
+  "width": 850,
+  "height": 400,
+  "nodes": [
+    {
+      "id": "interface",
+      "type": "rect",
+      "theme": "c4-code",
+      "x": 200,
+      "y": 100,
+      "width": 160,
+      "height": 60,
+      "label": "OrderService\n<<interface>>"
+    },
+    {
+      "id": "impl",
+      "type": "rect",
+      "theme": "c4-code",
+      "x": 200,
+      "y": 240,
+      "width": 160,
+      "height": 70,
+      "label": "OrderServiceImpl\n[核心实现]"
+    },
+    {
+      "id": "mock",
+      "type": "rect",
+      "theme": "c4-code",
+      "x": 480,
+      "y": 240,
+      "width": 160,
+      "height": 70,
+      "label": "MockOrderService\n[测试桩]"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "theme": "c4-code",
+      "x": 480,
+      "y": 100,
+      "label": "OrderRepository"
+    }
+  ],
+  "connections": [
+    {
+      "from": "interface",
+      "to": "impl",
+      "label": "implements",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "animate": false
+    },
+    {
+      "from": "interface",
+      "to": "mock",
+      "label": "implements",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "animate": false
+    },
+    {
+      "from": "impl",
+      "to": "db",
+      "label": "依赖",
+      "lineType": "dashed",
+      "curve": "bezier",
+      "animate": true
+    }
+  ],
+  "groups": [
+    {
+      "id": "impl_group",
+      "label": "C4 Level 4: Code Diagram — OrderService",
+      "nodeIds": ["interface", "impl", "mock", "db"],
+      "theme": "c4-code"
+    }
+  ]
+}

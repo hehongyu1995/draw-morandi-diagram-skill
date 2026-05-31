@@ -2,7 +2,7 @@
 
 export interface DiagramNode {
   id: string;
-  type: 'rect' | 'circle' | 'capsule' | 'database' | 'file';
+  type: 'rect' | 'circle' | 'capsule' | 'database' | 'file' | 'person' | 'cloud';
   theme: string;
   x: number;
   y: number;
