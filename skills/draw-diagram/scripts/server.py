@@ -192,33 +192,22 @@ def do_render(args):
             page = browser.new_page(viewport={"width": 1280, "height": 900})
             
             # Navigate to the app
-            page.goto(f"http://127.0.0.1:{port}/", wait_until="networkidle")
+            page.goto(f"http://127.0.0.1:{port}/", wait_until="domcontentloaded")
             
-            # Wait for the file select dropdown to be populated
-            file_select = page.locator("select#file-select")
-            file_select.wait_for(state="attached", timeout=10000)
-            
-            # Wait for at least one option besides the initial placeholder
-            page.wait_for_function(
-                "() => document.querySelector('select#file-select')?.options?.length > 0",
-                timeout=15000
-            )
+            # Wait for the file select dropdown to be rendered by React
+            page.wait_for_selector("select#file-select", timeout=15000)
             
             # Get the basename of the render file
             target_filename = os.path.basename(render_file)
             
             # Select the file in the dropdown
-            file_select.select_option(target_filename)
+            page.locator("select#file-select").select_option(target_filename)
             
             # Trigger change event so React picks it up
-            page.evaluate("""
-                () => {
-                    const sel = document.querySelector('select#file-select');
-                    if (sel) {
-                        sel.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                }
-            """)
+            page.evaluate("""() => {
+                const sel = document.querySelector('select#file-select');
+                if (sel) sel.dispatchEvent(new Event('change', { bubbles: true }));
+            }""")
             
             # Wait for the SVG to render (id="svg-render")
             try:
@@ -230,10 +219,20 @@ def do_render(args):
             # Small extra wait for rendering to finish
             page.wait_for_timeout(1000)
             
-            # Take screenshot of the entire page
-            page.screenshot(path=output_path, full_page=True)
-            
-            print(f"Headless render complete: {output_path}")
+            # Use the Export PNG button for full-resolution canvas export
+            # The button renders at 2x the diagram dimensions, not viewport-constrained
+            try:
+                # Click export PNG button and intercept the download
+                with page.expect_download() as download_info:
+                    page.click("#btn-export-png")
+                
+                download = download_info.value
+                download.save_as(output_path)
+                print(f"Headless render complete: {output_path} ({download.suggested_filename})")
+            except Exception as e:
+                print(f"Export PNG failed ({e}), falling back to page screenshot")
+                page.screenshot(path=output_path, full_page=True)
+                print(f"Headless render complete (screenshot fallback): {output_path}")
             
             browser.close()
     finally:

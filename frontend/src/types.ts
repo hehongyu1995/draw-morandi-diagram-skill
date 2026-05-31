@@ -18,6 +18,7 @@ export interface Connection {
   lineType?: 'solid' | 'dashed' | 'dotted';
   curve?: 'straight' | 'bezier';
   routing?: 'bezier' | 'orthogonal';
+  arrowStyle?: 'filled' | 'open' | 'triangle' | 'diamond' | 'circle';
   fromOffset?: [number, number];
   toOffset?: [number, number];
   animate?: boolean;

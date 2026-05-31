@@ -29,15 +29,15 @@ describe('computeAutoLayout', () => {
     });
     const result = computeAutoLayout(data);
     expect(result.nodes).toHaveLength(2);
-    result.nodes.forEach((node) => {
+    result.nodes!.forEach((node) => {
       expect(typeof node.x).toBe('number');
       expect(typeof node.y).toBe('number');
       expect(Number.isInteger(node.x)).toBe(true);
       expect(Number.isInteger(node.y)).toBe(true);
     });
     // A and B should NOT both be at (0,0) after layout
-    const a = result.nodes.find((n) => n.id === 'A')!;
-    const b = result.nodes.find((n) => n.id === 'B')!;
+    const a = result.nodes!.find((n) => n.id === 'A')!;
+    const b = result.nodes!.find((n) => n.id === 'B')!;
     const bothAtOrigin = a.x === 0 && a.y === 0 && b.x === 0 && b.y === 0;
     expect(bothAtOrigin).toBe(false);
   });
@@ -56,7 +56,7 @@ describe('computeAutoLayout', () => {
     });
     const result = computeAutoLayout(data);
     expect(result.nodes).toHaveLength(3);
-    result.nodes.forEach((node) => {
+    result.nodes!.forEach((node) => {
       expect(Number.isInteger(node.x)).toBe(true);
       expect(Number.isInteger(node.y)).toBe(true);
     });

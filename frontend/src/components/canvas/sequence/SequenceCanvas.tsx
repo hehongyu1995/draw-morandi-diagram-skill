@@ -168,32 +168,77 @@ export function SequenceCanvas({
             );
           })}
 
-          {/* 3. Draw Notes */}
+          {/* 3. Draw Notes — auto-sized to fit text content */}
           {currentData.notes?.map((note, idx) => {
             const part = participantMap.get(note.participant);
             if (!part) return null;
-            const w = note.width || 120;
-            const h = note.height || 45;
-            const x = (part.x ?? 0) + (note.align === 'left' ? -(w + 20) : 20);
+
+            // Typography constants for auto-sizing
+            const charWidth = 6.5; // approximate for 11px font
+            const paddingX = 16;
+            const paddingY = 12;
+            const lineHeight = 16;
+
+            // Start with the default box width to estimate line-wrapping
+            const defaultW = note.width || 120;
+
+            // Handle manual line breaks (\n in data or literal \\n)
+            const rawLines = note.label.split(/\\r?\\n|\\\\n/);
+
+            // Auto-wrap each raw line into the available width
+            const maxCharsPerLine = Math.max(10, Math.floor((defaultW - paddingX) / charWidth));
+
+            const wrapLine = (line: string): string[] => {
+              if (line.length <= maxCharsPerLine) return [line];
+              const words = line.split(/(?<=\s)/); // split at word boundaries, keep delimiter
+              const wrapped: string[] = [];
+              let current = '';
+              for (const word of words) {
+                if ((current + word).length > maxCharsPerLine && current.length > 0) {
+                  wrapped.push(current.trim());
+                  current = word;
+                } else {
+                  current += word;
+                }
+              }
+              if (current.trim().length > 0) wrapped.push(current.trim());
+              return wrapped.length > 0 ? wrapped : [line];
+            };
+
+            // Flatten: for each raw line, wrap it, collect all resulting lines
+            const allLines: string[] = [];
+            for (const rawLine of rawLines) {
+              const wrapped = wrapLine(rawLine);
+              for (const wl of wrapped) {
+                allLines.push(wl);
+              }
+            }
+            const finalLines = allLines.length > 0 ? allLines : [note.label];
+
+            // Auto-size the box based on the longest wrapped line
+            const maxLineLen = Math.max(...finalLines.map(l => l.length));
+            const autoW = Math.max(80, maxLineLen * charWidth + paddingX);
+            const autoH = Math.max(30, finalLines.length * lineHeight + paddingY);
+
+            // Recalculate x positioning using the auto-sized width
+            const x = (part.x ?? 0) + (note.align === 'left' ? -(autoW + 20) : 20);
             const resolvedNoteMsg = findMsg(note.y);
             const noteY = resolvedNoteMsg ? resolvedNoteMsg.y : (typeof note.y === 'number' ? note.y : 100);
 
-            const lines = note.label.split(/\r?\n|\\n/);
-
             return (
               <g key={`note-${idx}`} className="note-group">
-                <rect x={x} y={noteY} width={w} height={h} rx={2} fill="#eeece8" stroke="#dad6d0" strokeWidth="1" />
-                {lines.length > 1 ? (
-                  <text x={x + w / 2} y={noteY + h / 2} textAnchor="middle" fill="#6e6a64" className="message-text" style={{ fontSize: '11px' }}>
-                    {lines.map((line, lidx) => (
-                      <tspan key={lidx} x={x + w / 2} dy={lidx === 0 ? -(lines.length - 1) * 8 + 3 : 15} textAnchor="middle">
+                <rect x={x} y={noteY} width={autoW} height={autoH} rx={2} fill="#eeece8" stroke="#dad6d0" strokeWidth="1" />
+                {finalLines.length > 1 ? (
+                  <text x={x + autoW / 2} y={noteY + autoH / 2} textAnchor="middle" fill="#6e6a64" className="message-text" style={{ fontSize: '11px' }} dominantBaseline="central">
+                    {finalLines.map((line, lidx) => (
+                      <tspan key={lidx} x={x + autoW / 2} dy={lidx === 0 ? 0 : lineHeight} textAnchor="middle">
                         {line}
                       </tspan>
                     ))}
                   </text>
                 ) : (
-                  <text x={x + w / 2} y={noteY + h / 2} textAnchor="middle" dominantBaseline="central" fill="#6e6a64" className="message-text" style={{ fontSize: '11px' }}>
-                    {note.label}
+                  <text x={x + autoW / 2} y={noteY + autoH / 2} textAnchor="middle" dominantBaseline="central" fill="#6e6a64" className="message-text" style={{ fontSize: '11px' }}>
+                    {finalLines[0]}
                   </text>
                 )}
               </g>

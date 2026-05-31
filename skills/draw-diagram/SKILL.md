@@ -39,6 +39,7 @@ Use this skill to draw or generate highly aesthetic flowcharts, architecture dia
 * **Activation Bars**: Highlight active execution segments on lifelines (can anchor dynamically to message references instead of absolute heights).
 * **Messages**: Horizontal calls and return calls with automatic vertical spacing (autospacing) at 55px intervals (manual `y` placement is optional).
 * **Diagram Group Overlay boundary boxes (Combined Fragments/Loops)**: Boundary frames wrapping message sequences, featuring solid themed borders, 25% opacity background fills, and foreground label tabs to prevent lifeline and activation overlaps.
+* **Notes**: Sticky-note style annotations attached to participant lifelines, with vertical anchoring to messages.
 * **Flow Animations**: Direction-aware flow overlays indicating sequential execution direction.
 
 ---
@@ -118,12 +119,19 @@ Diagrams are defined in JSON files. The live preview server reads, renders, and 
   * `curvature`: Optional curvature override coefficient (applies to both from/to control vectors).
   * `fromCurvature`: Optional curvature override coefficient specifically for the starting (from) control tangent.
   * `toCurvature`: Optional curvature override coefficient specifically for the ending (to) control tangent.
+  * `arrowStyle`: `"filled"` | `"open"` | `"triangle"` | `"diamond"` | `"circle"` (defaults to `"filled"`).
+  * `routing`: `"bezier"` (default) | `"orthogonal"`.
+  * `points`: Optional array of `{x, y}` routing points for orthogonal connections (auto-computed when `autoLayout: true` + `routing: "orthogonal"`).
   * `animate`: Optional boolean to enable/disable flowing animation on this line (defaults to `true`).
 * **Group Properties**:
   * `id`: Unique identifier (string).
   * `label`: Group boundary label text.
   * `nodeIds`: Array of node IDs enclosed inside the boundary box (string[]).
   * `theme`: Optional group color theme override (`"red"` | `"green"` | `"blue"` | `"gray"` | C4 themes).
+* **Auto Layout**: Set `autoLayout: true` at the root level to automatically position nodes using dagre.
+  After layout runs, the flag resets to `false` to allow manual re-positioning. Direction is LR (left-to-right);
+  node separation and rank separation are configurable. When combined with `routing: "orthogonal"` on
+  connections, routing points are also auto-computed.
 
 ---
 
@@ -174,6 +182,13 @@ Set `"type": "sequence"` in the root object.
   * `label`: String label placed above the message arrow.
   * `lineType`: `"solid"` (default call) | `"dashed"` (returns).
   * `animate`: Optional boolean to enable/disable flowing animation on this message arrow (defaults to `true`).
+* **Note Properties**:
+  * `participant`: Participant ID to attach the note to.
+  * `label`: Note text content. Use `\n` or `\\n` for multiline.
+  * `y`: Optional vertical position. Can be a specific Y coordinate (number >= 100), or a message ID / 0-indexed message index number (< 100) to anchor vertically to that message (see `start`/`end` in Activation Properties for anchoring syntax).
+  * `align`: `"left"` | `"right"` (left places the note box to the left of the participant lifeline, right to the right).
+  * `width`: Optional note box width (defaults to 120).
+  * `height`: Optional note box height (defaults to 45).
 * **Group Properties**:
   * `id`: Unique identifier (string).
   * `label`: String label/title rendered inside the loop box.
@@ -225,6 +240,8 @@ python3 skills/draw-diagram/scripts/server.py
 * `--file <path>`: Path to a specific single diagram JSON file to edit (restricts the interface to this single diagram).
 * `--web-dir <path>`: Directory containing web UI assets (defaults to the compiled React assets at `frontend/dist/` or falls back to standard skill `resources/`).
 * `--port <number>`: Port to run the server on (defaults to `8000`).
+* `--render <path>`: Path to a JSON diagram file to render in headless mode (no browser needed). Uses Playwright to capture a PNG screenshot.
+* `--output <path>`: Output PNG file path (only used with `--render`, defaults to `output.png`).
 
 Example: To serve diagrams in `/Users/user/diagrams/` on port `8080`:
 ```bash
@@ -292,3 +309,13 @@ The following example JSON files are generated in the workspace:
   * **Shift Key Integration**: Hold the `Shift` key while clicking a node to toggle its selection state, or hold `Shift` while dragging a marquee selection to merge/add nodes to the active selection.
   * **Batch Dragging**: Dragging any selected node translates all selected nodes as a group, preserving their relative positions.
   * **Selection Outline Highlights**: Selected nodes display a dynamic dotted blue outline ring highlighting their active state.
+
+### Testing
+The project uses **Vitest** for unit tests covering the pure-function transformation layer:
+```bash
+cd frontend && npm test
+```
+31 tests across 4 test files cover: node dimensions, path midpoint calculation, connection endpoint geometry, and dagre auto layout. All tests are DOM/browser-free and run headlessly.
+
+### Path Midpoint Extraction
+The path-length midpoint utility (`frontend/src/utils/pathMidpoint.ts`) computes the point at 50% of total path length for orthogonal routed connections, used to position connection labels accurately on multi-segment paths.

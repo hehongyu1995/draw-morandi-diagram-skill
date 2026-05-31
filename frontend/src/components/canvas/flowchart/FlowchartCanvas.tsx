@@ -67,6 +67,17 @@ export function FlowchartCanvas({
   const nodes = currentData.nodes || [];
   const nodeMap = new Map(nodes.map(n => [n.id, n]));
 
+  const getMarkerForStyle = (style?: string): string => {
+    const styleMap: Record<string, string> = {
+      filled: 'url(#arrow-solid)',
+      open: 'url(#arrow-open)',
+      triangle: 'url(#arrow-triangle)',
+      diamond: 'url(#arrow-diamond)',
+      circle: 'url(#arrow-circle)',
+    };
+    return styleMap[style || 'filled'] || 'url(#arrow-solid)';
+  };
+
   return (
     <div className="canvas-container">
       <div className="canvas-wrapper" style={{ width: `${width}px`, height: `${height}px` }}>
@@ -233,6 +244,9 @@ export function FlowchartCanvas({
                 const side = x1 < nodeA.x ? 'left' : 'right';
 
                 nodes.forEach(n => {
+                  // Skip the connection's own from/to nodes — they're the endpoints, not obstacles
+                  if (n.id === nodeA.id || n.id === nodeB.id) return;
+
                   const { w: nw, h: nh } = getNodeDimensions(n);
                   const nTop = n.y - nh / 2;
                   const nBot = n.y + nh / 2;
@@ -329,7 +343,7 @@ export function FlowchartCanvas({
                       className="connection-line"
                       strokeDasharray={strokeDash}
                       strokeLinecap={conn.lineType === 'dotted' ? 'round' : undefined}
-                      markerEnd="url(#arrow-solid)"
+                      markerEnd={getMarkerForStyle(conn.arrowStyle)}
                       strokeDashoffset={((staticExportTime % 1.5) / 1.5) * -24}
                     />
                   ) : (
@@ -338,7 +352,7 @@ export function FlowchartCanvas({
                       className="connection-line"
                       strokeDasharray={strokeDash}
                       strokeLinecap={conn.lineType === 'dotted' ? 'round' : undefined}
-                      markerEnd="url(#arrow-solid)"
+                      markerEnd={getMarkerForStyle(conn.arrowStyle)}
                     >
                       <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.5s" repeatCount="indefinite" />
                     </path>
@@ -349,7 +363,7 @@ export function FlowchartCanvas({
                     className="connection-line"
                     strokeDasharray={strokeDash || undefined}
                     strokeLinecap={conn.lineType === 'dotted' ? 'round' : undefined}
-                    markerEnd="url(#arrow-solid)"
+                    markerEnd={getMarkerForStyle(conn.arrowStyle)}
                     id={animateSolidConn ? pathId : undefined}
                   />
                 )}

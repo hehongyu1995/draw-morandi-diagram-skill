@@ -25,6 +25,95 @@ function ArrowSolidMarker() {
   );
 }
 
+function ArrowOpenMarker() {
+  return (
+    <marker
+      id="arrow-open"
+      viewBox="0 0 10 10"
+      refX="7"
+      refY="5"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto-start-reverse"
+    >
+      <path
+        d="M 1 2.5 L 7 5 L 1 7.5"
+        fill="none"
+        stroke="#6e6a5f"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </marker>
+  );
+}
+
+function ArrowTriangleMarker() {
+  return (
+    <marker
+      id="arrow-triangle"
+      viewBox="0 0 12 12"
+      refX="9"
+      refY="6"
+      markerWidth="8"
+      markerHeight="8"
+      orient="auto-start-reverse"
+    >
+      <path
+        d="M 1 3 L 9 6 L 1 9 Z"
+        fill="#6e6a5f"
+        stroke="#6e6a5f"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+    </marker>
+  );
+}
+
+function ArrowDiamondMarker() {
+  return (
+    <marker
+      id="arrow-diamond"
+      viewBox="0 0 12 12"
+      refX="8"
+      refY="6"
+      markerWidth="8"
+      markerHeight="8"
+      orient="auto-start-reverse"
+    >
+      <path
+        d="M 6 1 L 11 6 L 6 11 L 1 6 Z"
+        fill="#6e6a5f"
+        stroke="#6e6a5f"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+    </marker>
+  );
+}
+
+function ArrowCircleMarker() {
+  return (
+    <marker
+      id="arrow-circle"
+      viewBox="0 0 10 10"
+      refX="7"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <circle
+        cx="5"
+        cy="5"
+        r="3.5"
+        fill="#6e6a5f"
+        stroke="none"
+      />
+    </marker>
+  );
+}
+
 function DotGlowFilter() {
   return (
     <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -116,6 +205,10 @@ export function SvgDefs({ variant }: SvgDefsProps) {
   return (
     <defs>
       <ArrowSolidMarker />
+      <ArrowOpenMarker />
+      <ArrowTriangleMarker />
+      <ArrowDiamondMarker />
+      <ArrowCircleMarker />
 
       <style>{`
               .node-text {

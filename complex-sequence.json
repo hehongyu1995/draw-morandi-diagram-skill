@@ -1,0 +1,274 @@
+{
+  "type": "sequence",
+  "width": 1350,
+  "height": 1300,
+  "participants": [
+    {
+      "id": "customer",
+      "label": "Customer",
+      "theme": "red",
+      "x": 80,
+      "type": "capsule",
+      "width": 100,
+      "height": 45
+    },
+    {
+      "id": "mobile_app",
+      "label": "Mobile App",
+      "theme": "blue",
+      "x": 260,
+      "type": "capsule",
+      "width": 110,
+      "height": 45
+    },
+    {
+      "id": "order_service",
+      "label": "Order Service",
+      "theme": "green",
+      "x": 450,
+      "type": "capsule",
+      "width": 120,
+      "height": 45
+    },
+    {
+      "id": "payment_gateway",
+      "label": "Payment\nGateway",
+      "theme": "gray",
+      "x": 630,
+      "type": "capsule",
+      "width": 110,
+      "height": 45
+    },
+    {
+      "id": "inventory_service",
+      "label": "Inventory\nService",
+      "theme": "green",
+      "x": 800,
+      "type": "capsule",
+      "width": 110,
+      "height": 45
+    },
+    {
+      "id": "shipping_service",
+      "label": "Shipping\nService",
+      "theme": "blue",
+      "x": 970,
+      "type": "capsule",
+      "width": 110,
+      "height": 45
+    },
+    {
+      "id": "notification_service",
+      "label": "Notification\nService",
+      "theme": "red",
+      "x": 1130,
+      "type": "capsule",
+      "width": 120,
+      "height": 45
+    },
+    {
+      "id": "warehouse",
+      "label": "Warehouse",
+      "theme": "gray",
+      "x": 1280,
+      "type": "capsule",
+      "width": 100,
+      "height": 45
+    }
+  ],
+  "messages": [
+    {
+      "id": "m_place_order",
+      "from": "customer",
+      "to": "mobile_app",
+      "label": "1. Place Order (Gaming Laptop)",
+      "lineType": "solid",
+      "animate": true
+    },
+    {
+      "id": "m_submit_order",
+      "from": "mobile_app",
+      "to": "order_service",
+      "label": "2. POST /api/orders",
+      "lineType": "solid",
+      "animate": true
+    },
+    {
+      "id": "m_validate",
+      "from": "order_service",
+      "to": "order_service",
+      "label": "3. Validate order data",
+      "lineType": "solid"
+    },
+    {
+      "id": "m_reserve_inv",
+      "from": "order_service",
+      "to": "inventory_service",
+      "label": "4. reserveInventory(items)",
+      "lineType": "solid",
+      "animate": true
+    },
+    {
+      "id": "m_check_stock",
+      "from": "inventory_service",
+      "to": "inventory_service",
+      "label": "5. Check & lock stock levels",
+      "lineType": "solid"
+    },
+    {
+      "id": "m_stock_ok",
+      "from": "inventory_service",
+      "to": "order_service",
+      "label": "6. Items reserved ✓",
+      "lineType": "dashed"
+    },
+    {
+      "id": "m_process_payment",
+      "from": "order_service",
+      "to": "payment_gateway",
+      "label": "7. chargePayment($1,299.00)",
+      "lineType": "solid",
+      "animate": true
+    },
+    {
+      "id": "m_retry_payment",
+      "from": "order_service",
+      "to": "order_service",
+      "label": "8. Retry on timeout (3x)",
+      "lineType": "solid"
+    },
+    {
+      "id": "m_payment_ok",
+      "from": "payment_gateway",
+      "to": "order_service",
+      "label": "9. Payment confirmed ✓",
+      "lineType": "dashed"
+    },
+    {
+      "id": "m_finalize",
+      "from": "order_service",
+      "to": "order_service",
+      "label": "10. Finalize order record",
+      "lineType": "solid"
+    },
+    {
+      "id": "m_create_shipment",
+      "from": "order_service",
+      "to": "shipping_service",
+      "label": "11. createShipment(orderId)",
+      "lineType": "solid",
+      "animate": true
+    },
+    {
+      "id": "m_notify_wh",
+      "from": "shipping_service",
+      "to": "warehouse",
+      "label": "12. Pick & pack items",
+      "lineType": "solid",
+      "animate": true
+    },
+    {
+      "id": "m_wh_ready",
+      "from": "warehouse",
+      "to": "shipping_service",
+      "label": "13. Items packed ✓",
+      "lineType": "dashed"
+    },
+    {
+      "id": "m_assign_carrier",
+      "from": "shipping_service",
+      "to": "shipping_service",
+      "label": "14. Assign carrier & label",
+      "lineType": "solid"
+    },
+    {
+      "id": "m_tracking",
+      "from": "shipping_service",
+      "to": "order_service",
+      "label": "15. Tracking #: 1Z999AA1...",
+      "lineType": "dashed"
+    },
+    {
+      "id": "m_send_email",
+      "from": "order_service",
+      "to": "notification_service",
+      "label": "16. sendOrderConfirmation()",
+      "lineType": "solid",
+      "animate": true
+    },
+    {
+      "id": "m_email_done",
+      "from": "notification_service",
+      "to": "order_service",
+      "label": "17. Email dispatched ✓",
+      "lineType": "dashed"
+    },
+    {
+      "id": "m_order_confirmed",
+      "from": "order_service",
+      "to": "mobile_app",
+      "label": "18. Order confirmed response",
+      "lineType": "dashed",
+      "animate": true
+    },
+    {
+      "id": "m_push_notify",
+      "from": "mobile_app",
+      "to": "customer",
+      "label": "19. Order confirmed! 🎉",
+      "lineType": "dashed",
+      "animate": true
+    }
+  ],
+  "activations": [
+    {
+      "participant": "order_service",
+      "start": "m_submit_order",
+      "end": "m_order_confirmed"
+    },
+    {
+      "participant": "inventory_service",
+      "start": "m_reserve_inv",
+      "end": "m_stock_ok"
+    },
+    {
+      "participant": "shipping_service",
+      "start": "m_create_shipment",
+      "end": "m_tracking"
+    }
+  ],
+  "groups": [
+    {
+      "id": "g_payment",
+      "label": "Payment Processing",
+      "participants": ["order_service", "payment_gateway"],
+      "messageFrom": "m_process_payment",
+      "messageTo": "m_payment_ok",
+      "theme": "gray"
+    },
+    {
+      "id": "g_shipping",
+      "label": "Shipping & Fulfillment",
+      "participants": ["order_service", "shipping_service", "warehouse"],
+      "messageFrom": "m_create_shipment",
+      "messageTo": "m_tracking",
+      "theme": "blue"
+    }
+  ],
+  "notes": [
+    {
+      "id": "note_retry",
+      "participant": "order_service",
+      "label": "Exponential backoff retry (3 attempts)",
+      "anchorMessage": "m_retry_payment",
+      "theme": "gray"
+    },
+    {
+      "id": "note_stock",
+      "participant": "inventory_service",
+      "label": "Pessimistic lock on stock rows",
+      "anchorMessage": "m_check_stock",
+      "theme": "green"
+    }
+  ]
+}
