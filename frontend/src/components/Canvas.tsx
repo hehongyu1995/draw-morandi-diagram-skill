@@ -12,7 +12,7 @@ interface CanvasProps {
 
 export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => {
   const {
-    currentData,
+    renderedData,
     animationsEnabled,
     bypassMargin,
     animateDashed,
@@ -24,9 +24,9 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
 
   React.useLayoutEffect(() => {
     if (exportTime !== null && svgRef.current) {
-      updateStaticDots(svgRef.current, exportTime, currentData?.type === 'sequence');
+      updateStaticDots(svgRef.current, exportTime, renderedData?.type === 'sequence');
     }
-  }, [exportTime, currentData, svgRef]);
+  }, [exportTime, renderedData, svgRef]);
 
   const {
     selectedNodeIds,
@@ -37,13 +37,13 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
     setDraggedAnchor,
     handleMouseDown
   } = useCanvasInteraction({
-    currentData,
+    currentData: renderedData,
     svgRef,
     dragNodes,
     updateConnectionOffset
   });
 
-  if (!currentData) {
+  if (!renderedData) {
     return (
       <div className="canvas-container">
         <div className="canvas-wrapper" style={{ width: '800px', height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -53,14 +53,14 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
     );
   }
 
-  const width = currentData.width || 800;
-  const height = currentData.height || (currentData.type === 'sequence' ? 500 : 400);
+  const width = renderedData.width || 800;
+  const height = renderedData.height || (renderedData.type === 'sequence' ? 500 : 400);
   const isStaticExport = exportTime !== null;
 
-  if (currentData.type === 'sequence') {
+  if (renderedData.type === 'sequence') {
     return (
       <SequenceCanvas
-        currentData={currentData}
+        currentData={renderedData}
         width={width}
         height={height}
         svgRef={svgRef}
@@ -78,7 +78,7 @@ export const Canvas: React.FC<CanvasProps> = ({ exportTime = null, svgRef }) => 
 
   return (
     <FlowchartCanvas
-      currentData={currentData}
+      currentData={renderedData}
       width={width}
       height={height}
       svgRef={svgRef}

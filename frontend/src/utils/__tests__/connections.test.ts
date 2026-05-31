@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { getNodeEdge, getEdgeSideOfPoint, getConnectionEndpoints, getNodeSnapPort } from '../../components/canvas/geometry/connections';
 import type { DiagramNode } from '../../types';
 
-function makeNode(overrides?: Partial<DiagramNode>): DiagramNode {
+type PositionedNode = DiagramNode & { x: number; y: number };
+
+function makeNode(overrides?: Partial<DiagramNode>): PositionedNode {
   return {
     id: 'test',
     type: 'capsule',

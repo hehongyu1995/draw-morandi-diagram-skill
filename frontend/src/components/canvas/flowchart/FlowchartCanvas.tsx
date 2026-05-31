@@ -10,6 +10,8 @@ import { getConnectionEndpoints, getEdgeSideOfPoint } from '../geometry/connecti
 import { getNodeDimensions } from '../../../utils/nodeDimensions';
 import { pathMidpoint } from '../../../utils/pathMidpoint';
 
+type PositionedNode = DiagramNode & { x: number; y: number };
+
 type DraggedAnchor = {
   connIdx: number;
   type: 'from' | 'to';
@@ -64,7 +66,9 @@ export function FlowchartCanvas({
   isStaticExport
 }: FlowchartCanvasProps) {
   const staticExportTime = exportTime ?? 0;
-  const nodes = currentData.nodes || [];
+  const nodes = (currentData.nodes || []).filter(
+    (node): node is PositionedNode => typeof node.x === 'number' && typeof node.y === 'number'
+  );
   const nodeMap = new Map(nodes.map(n => [n.id, n]));
 
   const getMarkerForStyle = (style?: string): string => {
@@ -100,7 +104,7 @@ export function FlowchartCanvas({
 
             const groupNodes = group.nodeIds
               .map(id => nodeMap.get(id))
-              .filter((n): n is DiagramNode => n !== undefined);
+              .filter((n): n is PositionedNode => n !== undefined);
             if (groupNodes.length === 0) return null;
 
             const xValues = groupNodes.map(node => {

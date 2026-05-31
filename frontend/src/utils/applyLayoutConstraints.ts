@@ -162,9 +162,11 @@ function shiftIntoPositiveBounds(nodes: DiagramNode[], plan: ConstraintPlan): Di
   const bounds = nodes.reduce(
     (acc, node) => {
       const { w, h } = getNodeDimensions(node);
+      const x = node.x ?? 0;
+      const y = node.y ?? 0;
       return {
-        minX: Math.min(acc.minX, node.x - w / 2),
-        minY: Math.min(acc.minY, node.y - h / 2),
+        minX: Math.min(acc.minX, x - w / 2),
+        minY: Math.min(acc.minY, y - h / 2),
       };
     },
     { minX: Number.POSITIVE_INFINITY, minY: Number.POSITIVE_INFINITY }
@@ -176,8 +178,8 @@ function shiftIntoPositiveBounds(nodes: DiagramNode[], plan: ConstraintPlan): Di
   if (dx === 0 && dy === 0) return nodes;
   return nodes.map((node) => ({
     ...node,
-    x: Math.round(node.x + dx),
-    y: Math.round(node.y + dy),
+    x: Math.round((node.x ?? 0) + dx),
+    y: Math.round((node.y ?? 0) + dy),
   }));
 }
 
@@ -195,16 +197,16 @@ export function normalizeConstrainedPositions(nodes: DiagramNode[], plan: Constr
 
     if (constraint.type === 'above') {
       node.x = refNode.x;
-      if (node.y >= refNode.y) node.y = refNode.y - verticalGap;
+      if ((node.y ?? 0) >= (refNode.y ?? 0)) node.y = (refNode.y ?? 0) - verticalGap;
     } else if (constraint.type === 'below') {
       node.x = refNode.x;
-      if (node.y <= refNode.y) node.y = refNode.y + verticalGap;
+      if ((node.y ?? 0) <= (refNode.y ?? 0)) node.y = (refNode.y ?? 0) + verticalGap;
     } else if (constraint.type === 'leftOf') {
       node.y = refNode.y;
-      if (node.x >= refNode.x) node.x = refNode.x - horizontalGap;
+      if ((node.x ?? 0) >= (refNode.x ?? 0)) node.x = (refNode.x ?? 0) - horizontalGap;
     } else if (constraint.type === 'rightOf') {
       node.y = refNode.y;
-      if (node.x <= refNode.x) node.x = refNode.x + horizontalGap;
+      if ((node.x ?? 0) <= (refNode.x ?? 0)) node.x = (refNode.x ?? 0) + horizontalGap;
     }
   });
 
@@ -212,8 +214,8 @@ export function normalizeConstrainedPositions(nodes: DiagramNode[], plan: Constr
     const updated = byId.get(node.id) || node;
     return {
       ...updated,
-      x: Math.round(updated.x),
-      y: Math.round(updated.y),
+      x: Math.round(updated.x ?? 0),
+      y: Math.round(updated.y ?? 0),
     };
   });
 

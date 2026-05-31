@@ -18,12 +18,14 @@ const getStyledSvgString = (svgEl: SVGSVGElement) => {
 
 export const App: React.FC = () => {
   const {
-    currentData,
+    sourceData,
+    renderedData,
     activeFile,
     isExportingGif,
     init,
     setIsExportingGif,
-    setGifProgress
+    setGifProgress,
+    loadSourceData
   } = useAppStore();
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -55,15 +57,10 @@ export const App: React.FC = () => {
         const text = await res.text();
         try {
           const json = JSON.parse(text);
-          const currentStr = JSON.stringify(currentData);
+          const currentStr = JSON.stringify(sourceData);
           const newStr = JSON.stringify(json);
           if (currentStr !== newStr) {
-            // Update store state directly without triggering another save request
-            useAppStore.setState({
-              currentData: json,
-              editorText: JSON.stringify(json, null, 2),
-              jsonStatus: { isValid: true, message: 'Auto-synced with workspace' }
-            });
+            loadSourceData(json, 'Auto-synced with workspace');
           }
         } catch (e) {
           useAppStore.setState({
@@ -76,7 +73,7 @@ export const App: React.FC = () => {
     }, 1500);
 
     return () => clearInterval(pollInterval);
-  }, [activeFile, currentData, isExportingGif]);
+  }, [activeFile, sourceData, isExportingGif, loadSourceData]);
 
   const handleExportSvg = () => {
     if (!svgRef.current) return;
@@ -94,10 +91,10 @@ export const App: React.FC = () => {
   };
 
   const handleExportPng = () => {
-    if (!currentData || !svgRef.current) return;
+    if (!renderedData || !svgRef.current) return;
 
-    const width = currentData.width || 800;
-    const height = currentData.height || 400;
+    const width = renderedData.width || 800;
+    const height = renderedData.height || 400;
 
     const svgStr = getStyledSvgString(svgRef.current);
     const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
@@ -132,7 +129,7 @@ export const App: React.FC = () => {
   };
 
   const handleExportGif = () => {
-    if (!currentData) return;
+    if (!renderedData) return;
 
     setIsExportingGif(true);
     setGifProgress(0);
@@ -143,8 +140,8 @@ export const App: React.FC = () => {
       return;
     }
 
-    const width = currentData.width || 800;
-    const height = currentData.height || 400;
+    const width = renderedData.width || 800;
+    const height = renderedData.height || 400;
 
     const duration = 3; // 3 seconds
     const fps = 10;
@@ -226,7 +223,7 @@ export const App: React.FC = () => {
         if (livePath) {
           try {
             const len = livePath.getTotalLength();
-            if (currentData.type === 'sequence') {
+            if (renderedData.type === 'sequence') {
               const dur = 1.5;
               const frac = (t % dur) / dur;
               const pt = livePath.getPointAtLength(len * frac);

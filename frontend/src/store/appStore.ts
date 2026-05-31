@@ -3,6 +3,8 @@ import type { DiagramSpec } from '../types';
 import { computeAutoLayout } from '../utils/dagreLayout';
 
 interface AppState {
+  sourceData: DiagramSpec | null;
+  renderedData: DiagramSpec | null;
   currentData: DiagramSpec | null;
   activeFile: string;
   fileList: string[];
@@ -27,7 +29,8 @@ interface AppState {
   updateEditorText: (text: string) => void;
   dragNode: (nodeId: string, x: number, y: number) => void;
   dragNodes: (updates: { id: string; x: number; y: number }[]) => void;
-  saveToServer: (data: DiagramSpec) => Promise<void>;
+  saveToServer: () => Promise<void>;
+  loadSourceData: (data: DiagramSpec, message?: string) => void;
   setIsExportingGif: (val: boolean) => void;
   setGifProgress: (val: number) => void;
   updateConnectionOffset: (connIdx: number, type: 'from' | 'to', offset: [number, number]) => void;
@@ -35,7 +38,41 @@ interface AppState {
 
 let saveTimeout: any = null;
 
+function shouldAutoLayout(data: DiagramSpec) {
+  return data.type !== 'sequence' && data.autoLayout && data.nodes && data.nodes.length > 0;
+}
+
+function renderFromSource(data: DiagramSpec): DiagramSpec {
+  return shouldAutoLayout(data) ? computeAutoLayout(data) : data;
+}
+
+function withNodeOverrides(
+  data: DiagramSpec,
+  updates: { id: string; x: number; y: number }[]
+): DiagramSpec {
+  const nextOverrides = {
+    ...(data.layout?.overrides?.nodes || {}),
+  };
+
+  updates.forEach((update) => {
+    nextOverrides[update.id] = { x: update.x, y: update.y };
+  });
+
+  return {
+    ...data,
+    layout: {
+      ...(data.layout || {}),
+      overrides: {
+        ...(data.layout?.overrides || {}),
+        nodes: nextOverrides,
+      },
+    },
+  };
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
+  sourceData: null,
+  renderedData: null,
   currentData: null,
   activeFile: 'diagram.json',
   fileList: ['diagram.json'],
@@ -72,18 +109,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const res = await fetch(`/${filename}?t=${Date.now()}`);
       if (res.ok) {
-        let data = await res.json();
-
-        // Auto-layout if flag is set
-        if (data.autoLayout && data.nodes && data.nodes.length > 0) {
-          data = computeAutoLayout(data);
-        }
-
-        set({
-          currentData: data,
-          editorText: JSON.stringify(data, null, 2),
-          jsonStatus: { isValid: true, message: 'Ready' }
-        });
+        const data = await res.json();
+        get().loadSourceData(data, 'Ready');
       }
     } catch (err) {
       set({ jsonStatus: { isValid: false, message: `Failed to load ${filename}` } });
@@ -134,22 +161,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateEditorText: (text: string) => {
     set({ editorText: text });
     try {
-      let data = JSON.parse(text);
-
-      // Auto-layout if flag is set
-      if (data.autoLayout && data.nodes && data.nodes.length > 0 && !data.type) {
-        data = computeAutoLayout(data);
-      }
+      const data = JSON.parse(text);
+      const renderedData = renderFromSource(data);
 
       set({
-        currentData: data,
+        sourceData: data,
+        renderedData,
+        currentData: renderedData,
         jsonStatus: { isValid: true, message: 'Valid JSON' }
       });
       
       // Debounce save to backend file
       if (saveTimeout) clearTimeout(saveTimeout);
       saveTimeout = setTimeout(() => {
-        get().saveToServer(data);
+        get().saveToServer();
       }, 1000);
     } catch (err: any) {
       set({ jsonStatus: { isValid: false, message: `JSON Error: ${err.message}` } });
@@ -157,7 +182,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   dragNode: (nodeId: string, x: number, y: number) => {
-    const data = get().currentData;
+    const data = get().sourceData;
     if (!data) return;
 
     let updatedSpec: DiagramSpec;
@@ -170,6 +195,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         return p;
       });
       updatedSpec = { ...data, participants: updatedParticipants };
+    } else if (shouldAutoLayout(data)) {
+      updatedSpec = withNodeOverrides(data, [{ id: nodeId, x, y }]);
     } else {
       const updatedNodes = (data.nodes || []).map(n => {
         if (n.id === nodeId) {
@@ -180,17 +207,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       updatedSpec = { ...data, nodes: updatedNodes };
     }
 
+    const renderedData = renderFromSource(updatedSpec);
     set({
-      currentData: updatedSpec,
+      sourceData: updatedSpec,
+      renderedData,
+      currentData: renderedData,
       editorText: JSON.stringify(updatedSpec, null, 2)
     });
 
     // Save coordinate changes directly to the backend
-    get().saveToServer(updatedSpec);
+    get().saveToServer();
   },
 
   dragNodes: (updates: { id: string; x: number; y: number }[]) => {
-    const data = get().currentData;
+    const data = get().sourceData;
     if (!data) return;
 
     let updatedSpec: DiagramSpec;
@@ -202,6 +232,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         return u ? { ...p, x: u.x, y: 50 } : p;
       });
       updatedSpec = { ...data, participants: updatedParticipants };
+    } else if (shouldAutoLayout(data)) {
+      updatedSpec = withNodeOverrides(data, updates);
     } else {
       const updatedNodes = (data.nodes || []).map(n => {
         const u = updateMap.get(n.id);
@@ -210,30 +242,47 @@ export const useAppStore = create<AppState>((set, get) => ({
       updatedSpec = { ...data, nodes: updatedNodes };
     }
 
+    const renderedData = renderFromSource(updatedSpec);
     set({
-      currentData: updatedSpec,
+      sourceData: updatedSpec,
+      renderedData,
+      currentData: renderedData,
       editorText: JSON.stringify(updatedSpec, null, 2)
     });
 
-    get().saveToServer(updatedSpec);
+    get().saveToServer();
   },
 
-  saveToServer: async (data: DiagramSpec) => {
+  saveToServer: async () => {
+    const dataToSave = get().sourceData;
+    if (!dataToSave) return;
+
     try {
       await fetch(`/save?file=${encodeURIComponent(get().activeFile)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(dataToSave)
       });
     } catch (err) {
       console.error('Failed to save file changes to workspace:', err);
     }
   },
 
+  loadSourceData: (data: DiagramSpec, message = 'Ready') => {
+    const renderedData = renderFromSource(data);
+    set({
+      sourceData: data,
+      renderedData,
+      currentData: renderedData,
+      editorText: JSON.stringify(data, null, 2),
+      jsonStatus: { isValid: true, message }
+    });
+  },
+
   setIsExportingGif: (val: boolean) => set({ isExportingGif: val }),
   setGifProgress: (val: number) => set({ gifProgress: val }),
   updateConnectionOffset: (connIdx: number, type: 'from' | 'to', offset: [number, number]) => {
-    const data = get().currentData;
+    const data = get().sourceData;
     if (!data || !data.connections) return;
 
     const updatedConns = [...data.connections];
@@ -248,11 +297,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     updatedConns[connIdx] = conn;
 
     const updatedSpec = { ...data, connections: updatedConns };
+    const renderedData = renderFromSource(updatedSpec);
     set({
-      currentData: updatedSpec,
+      sourceData: updatedSpec,
+      renderedData,
+      currentData: renderedData,
       editorText: JSON.stringify(updatedSpec, null, 2)
     });
 
-    get().saveToServer(updatedSpec);
+    get().saveToServer();
   }
 }));

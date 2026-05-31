@@ -20,7 +20,7 @@ function makeNode(id: string, x: number, y: number): DiagramNode {
 }
 
 function byId(nodes: DiagramNode[], id: string) {
-  return nodes.find((node) => node.id === id)!;
+  return nodes.find((node) => node.id === id)! as DiagramNode & { x: number; y: number };
 }
 
 afterEach(() => {

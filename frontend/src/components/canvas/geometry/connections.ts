@@ -1,23 +1,35 @@
 import type { DiagramNode } from '../../../types';
 import { getNodeDimensions } from '../../../utils/nodeDimensions';
 
+function nodeX(node: DiagramNode) {
+  return node.x ?? 0;
+}
+
+function nodeY(node: DiagramNode) {
+  return node.y ?? 0;
+}
+
 export function getNodeEdge(node: DiagramNode, direction: string) {
   const { w, h } = getNodeDimensions(node);
+  const x = nodeX(node);
+  const y = nodeY(node);
 
-  if (direction === 'right') return { x: node.x + w / 2, y: node.y };
-  if (direction === 'left') return { x: node.x - w / 2, y: node.y };
-  if (direction === 'top') return { x: node.x, y: node.y - h / 2 };
-  if (direction === 'bottom') return { x: node.x, y: node.y + h / 2 };
-  return { x: node.x, y: node.y };
+  if (direction === 'right') return { x: x + w / 2, y };
+  if (direction === 'left') return { x: x - w / 2, y };
+  if (direction === 'top') return { x, y: y - h / 2 };
+  if (direction === 'bottom') return { x, y: y + h / 2 };
+  return { x, y };
 }
 
 export function getEdgeSideOfPoint(x: number, y: number, node: DiagramNode): 'top' | 'bottom' | 'left' | 'right' {
   const { w, h } = getNodeDimensions(node);
+  const nodeCenterX = nodeX(node);
+  const nodeCenterY = nodeY(node);
 
-  const distTop = Math.abs(y - (node.y - h / 2));
-  const distBottom = Math.abs(y - (node.y + h / 2));
-  const distLeft = Math.abs(x - (node.x - w / 2));
-  const distRight = Math.abs(x - (node.x + w / 2));
+  const distTop = Math.abs(y - (nodeCenterY - h / 2));
+  const distBottom = Math.abs(y - (nodeCenterY + h / 2));
+  const distLeft = Math.abs(x - (nodeCenterX - w / 2));
+  const distRight = Math.abs(x - (nodeCenterX + w / 2));
 
   const minDist = Math.min(distTop, distBottom, distLeft, distRight);
   if (minDist === distTop) return 'top';
@@ -37,12 +49,12 @@ export function getConnectionEndpoints(
 
   function getOffsetAnchor(node: DiagramNode, offset: [number, number]) {
     const { w, h } = getNodeDimensions(node);
-    let x = node.x;
-    let y = node.y;
+    let x = nodeX(node);
+    let y = nodeY(node);
     if (Math.abs(offset[0]) > Math.abs(offset[1])) {
-      x = offset[0] > 0 ? node.x + w / 2 : node.x - w / 2;
+      x = offset[0] > 0 ? nodeX(node) + w / 2 : nodeX(node) - w / 2;
     } else if (Math.abs(offset[1]) > Math.abs(offset[0])) {
-      y = offset[1] > 0 ? node.y + h / 2 : node.y - h / 2;
+      y = offset[1] > 0 ? nodeY(node) + h / 2 : nodeY(node) - h / 2;
     }
     return { x, y };
   }
@@ -52,8 +64,8 @@ export function getConnectionEndpoints(
   if (hasFromOffset) {
     start = getOffsetAnchor(nodeA, fromOffset);
   } else {
-    const dx = nodeB.x - nodeA.x;
-    const dy = nodeB.y - nodeA.y;
+    const dx = nodeX(nodeB) - nodeX(nodeA);
+    const dy = nodeY(nodeB) - nodeY(nodeA);
     if (Math.abs(dx) >= Math.abs(dy)) {
       start = dx > 0 ? getNodeEdge(nodeA, 'right') : getNodeEdge(nodeA, 'left');
     } else {
@@ -64,8 +76,8 @@ export function getConnectionEndpoints(
   if (hasToOffset) {
     end = getOffsetAnchor(nodeB, toOffset);
   } else {
-    const dx = nodeB.x - nodeA.x;
-    const dy = nodeB.y - nodeA.y;
+    const dx = nodeX(nodeB) - nodeX(nodeA);
+    const dy = nodeY(nodeB) - nodeY(nodeA);
     if (Math.abs(dx) >= Math.abs(dy)) {
       end = dx > 0 ? getNodeEdge(nodeB, 'left') : getNodeEdge(nodeB, 'right');
     } else {
@@ -88,6 +100,8 @@ export function getNodeSnapPort(
   snapDistance: number = 30
 ) {
   const { w, h } = getNodeDimensions(node);
+  const x = nodeX(node);
+  const y = nodeY(node);
 
   const ports: Array<{
     portName: 'top' | 'bottom' | 'left' | 'right' | 'auto';
@@ -95,11 +109,11 @@ export function getNodeSnapPort(
     y: number;
     offset: [number, number];
   }> = [
-    { portName: 'top', x: node.x, y: node.y - h / 2, offset: [0, -20] },
-    { portName: 'bottom', x: node.x, y: node.y + h / 2, offset: [0, 20] },
-    { portName: 'left', x: node.x - w / 2, y: node.y, offset: [-20, 0] },
-    { portName: 'right', x: node.x + w / 2, y: node.y, offset: [20, 0] },
-    { portName: 'auto', x: node.x, y: node.y, offset: [0, 0] }
+    { portName: 'top', x, y: y - h / 2, offset: [0, -20] },
+    { portName: 'bottom', x, y: y + h / 2, offset: [0, 20] },
+    { portName: 'left', x: x - w / 2, y, offset: [-20, 0] },
+    { portName: 'right', x: x + w / 2, y, offset: [20, 0] },
+    { portName: 'auto', x, y, offset: [0, 0] }
   ];
 
   let closestPort = ports[4]; // Default to Auto

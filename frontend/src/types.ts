@@ -4,8 +4,8 @@ export interface DiagramNode {
   id: string;
   type: 'rect' | 'circle' | 'capsule' | 'database' | 'file' | 'person' | 'cloud';
   theme: string;
-  x: number;
-  y: number;
+  x?: number;
+  y?: number;
   width?: number;
   height?: number;
   label: string;
@@ -26,9 +26,14 @@ export type LayoutConstraint =
       refNodeId: string;
     };
 
+export interface LayoutOverrides {
+  nodes?: Record<string, { x: number; y: number }>;
+}
+
 export interface LayoutConfig {
   direction?: LayoutDirection;
   constraints?: LayoutConstraint[];
+  overrides?: LayoutOverrides;
   nodesep?: number;
   ranksep?: number;
   marginx?: number;

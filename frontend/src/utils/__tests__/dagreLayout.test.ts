@@ -89,6 +89,66 @@ describe('computeAutoLayout', () => {
       connections: [{ from: 'A', to: 'B' }],
     });
     const result = computeAutoLayout(data);
-    expect(result.autoLayout).toBe(false);
+    expect(result.autoLayout).toBe(true);
+  });
+
+  it('applies node overrides after dagre layout', () => {
+    const data = makeSpec({
+      autoLayout: true,
+      layout: {
+        overrides: {
+          nodes: {
+            B: { x: 333, y: 444 },
+          },
+        },
+      },
+      nodes: [
+        { id: 'A', type: 'capsule', theme: 'gray', label: 'A' },
+        { id: 'B', type: 'capsule', theme: 'gray', label: 'B' },
+      ],
+      connections: [{ from: 'A', to: 'B' }],
+    });
+
+    const result = computeAutoLayout(data);
+    expect(result.nodes?.find((node) => node.id === 'B')).toMatchObject({ x: 333, y: 444 });
+  });
+
+  it('keeps positions unchanged when no overrides are present', () => {
+    const base = makeSpec({
+      autoLayout: true,
+      nodes: [
+        { id: 'A', type: 'capsule', theme: 'gray', label: 'A' },
+        { id: 'B', type: 'capsule', theme: 'gray', label: 'B' },
+      ],
+      connections: [{ from: 'A', to: 'B' }],
+    });
+    const withEmptyOverrides = makeSpec({
+      ...base,
+      layout: { overrides: { nodes: {} } },
+    });
+
+    expect(computeAutoLayout(withEmptyOverrides).nodes).toEqual(computeAutoLayout(base).nodes);
+  });
+
+  it('applies override positions after constrained normalization', () => {
+    const data = makeSpec({
+      autoLayout: true,
+      layout: {
+        constraints: [{ type: 'rightOf', nodeId: 'B', refNodeId: 'A' }],
+        overrides: {
+          nodes: {
+            B: { x: 12, y: 34 },
+          },
+        },
+      },
+      nodes: [
+        { id: 'A', type: 'capsule', theme: 'gray', label: 'A' },
+        { id: 'B', type: 'capsule', theme: 'gray', label: 'B' },
+      ],
+      connections: [{ from: 'A', to: 'B' }],
+    });
+
+    const result = computeAutoLayout(data);
+    expect(result.nodes?.find((node) => node.id === 'B')).toMatchObject({ x: 12, y: 34 });
   });
 });

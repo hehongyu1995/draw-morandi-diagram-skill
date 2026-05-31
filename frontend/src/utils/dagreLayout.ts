@@ -47,7 +47,12 @@ export function computeAutoLayout(data: DiagramSpec): DiagramSpec {
     }
     return node;
   });
-  const updatedNodes = normalizeConstrainedPositions(dagreNodes, constraintPlan);
+  const normalizedNodes = normalizeConstrainedPositions(dagreNodes, constraintPlan);
+  const nodeOverrides = data.layout?.overrides?.nodes || {};
+  const updatedNodes = normalizedNodes.map((node) => {
+    const override = nodeOverrides[node.id];
+    return override ? { ...node, x: override.x, y: override.y } : node;
+  });
 
   // Read back edge routing points for orthogonal connections
   const updatedConnections = data.connections?.map((conn) => {
@@ -77,8 +82,8 @@ export function computeAutoLayout(data: DiagramSpec): DiagramSpec {
     (acc, node) => {
       const { w, h } = getNodeDimensions(node);
       return {
-        maxX: Math.max(acc.maxX, node.x + w / 2),
-        maxY: Math.max(acc.maxY, node.y + h / 2),
+        maxX: Math.max(acc.maxX, (node.x ?? 0) + w / 2),
+        maxY: Math.max(acc.maxY, (node.y ?? 0) + h / 2),
       };
     },
     { maxX: 0, maxY: 0 }
@@ -96,6 +101,5 @@ export function computeAutoLayout(data: DiagramSpec): DiagramSpec {
     connections: updatedConnections,
     width: canvasWidth,
     height: canvasHeight,
-    autoLayout: false, // Strip the flag after layout so drags don't re-trigger
   };
 }
