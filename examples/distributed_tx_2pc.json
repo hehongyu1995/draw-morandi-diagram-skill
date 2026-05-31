@@ -1,0 +1,50 @@
+{
+  "type": "sequence",
+  "width": 1000,
+  "height": 780,
+  "participants": [
+    { "id": "app", "label": "Application\n服务调用方", "theme": "red", "x": 90 },
+    { "id": "tc", "label": "TC\n事务协调器", "theme": "blue", "x": 320 },
+    { "id": "rma", "label": "RM-A\n资源管理器A\n(数据库/消息队列)", "theme": "green", "x": 560 },
+    { "id": "rmb", "label": "RM-B\n资源管理器B\n(数据库/服务)", "theme": "gray", "x": 800 }
+  ],
+  "activations": [
+    { "participant": "tc", "start": "m1", "end": "m12" },
+    { "participant": "rma", "start": "m2", "end": "m3" },
+    { "participant": "rmb", "start": "m4", "end": "m5" },
+    { "participant": "rma", "start": "m7", "end": "m8" },
+    { "participant": "rmb", "start": "m9", "end": "m10" }
+  ],
+  "messages": [
+    { "id": "m1", "from": "app", "to": "tc", "label": "1. begin global tx", "lineType": "solid", "animate": true },
+    { "id": "m2", "from": "tc", "to": "rma", "label": "2. prepare(XID, branchA)", "lineType": "solid", "animate": true },
+    { "id": "m3", "from": "rma", "to": "tc", "label": "3. ready(资源锁定, 写undo日志)", "lineType": "dashed", "animate": true },
+    { "id": "m4", "from": "tc", "to": "rmb", "label": "4. prepare(XID, branchB)", "lineType": "solid", "animate": true },
+    { "id": "m5", "from": "rmb", "to": "tc", "label": "5. ready(资源锁定, 写undo日志)", "lineType": "dashed", "animate": true },
+    { "id": "m6", "from": "tc", "to": "tc", "label": "6. 决策: 所有RM返回ready → commit", "lineType": "solid", "animate": true },
+    { "id": "m7", "from": "tc", "to": "rma", "label": "7. commit(XID, branchA)", "lineType": "solid", "animate": true },
+    { "id": "m8", "from": "rma", "to": "tc", "label": "8. ack(提交完成, 释放资源)", "lineType": "dashed", "animate": true },
+    { "id": "m9", "from": "tc", "to": "rmb", "label": "9. commit(XID, branchB)", "lineType": "solid", "animate": true },
+    { "id": "m10", "from": "rmb", "to": "tc", "label": "10. ack(提交完成, 释放资源)", "lineType": "dashed", "animate": true },
+    { "id": "m11", "from": "tc", "to": "tc", "label": "11. 日志: 全局事务已提交", "lineType": "solid", "animate": true },
+    { "id": "m12", "from": "tc", "to": "app", "label": "12. 全局事务提交成功", "lineType": "dashed", "animate": true }
+  ],
+  "groups": [
+    {
+      "id": "phase1",
+      "label": "Phase 1: 准备阶段 (Prepare)",
+      "participants": ["tc", "rma", "rmb"],
+      "messageFrom": "m2",
+      "messageTo": "m5",
+      "theme": "gray"
+    },
+    {
+      "id": "phase2",
+      "label": "Phase 2: 提交阶段 (Commit)",
+      "participants": ["tc", "rma", "rmb"],
+      "messageFrom": "m7",
+      "messageTo": "m10",
+      "theme": "blue"
+    }
+  ]
+}

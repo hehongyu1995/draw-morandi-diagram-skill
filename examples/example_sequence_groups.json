@@ -1,0 +1,135 @@
+{
+  "type": "sequence",
+  "width": 850,
+  "height": 480,
+  "participants": [
+    {
+      "id": "user",
+      "label": "User\nClient",
+      "theme": "red",
+      "x": 73,
+      "y": 50,
+      "type": "capsule",
+      "width": 120,
+      "height": 45
+    },
+    {
+      "id": "gateway",
+      "label": "API\nGateway",
+      "theme": "blue",
+      "x": 370,
+      "y": 50,
+      "type": "capsule",
+      "width": 120,
+      "height": 45
+    },
+    {
+      "id": "db",
+      "label": "Database\nCluster",
+      "theme": "green",
+      "x": 782,
+      "y": 50,
+      "type": "capsule",
+      "width": 120,
+      "height": 45
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg_signup_req",
+      "from": "user",
+      "to": "gateway",
+      "label": "1. POST /signup",
+      "y": 130,
+      "lineType": "solid"
+    },
+    {
+      "id": "msg_check_exists",
+      "from": "gateway",
+      "to": "db",
+      "label": "2. Check unique email",
+      "y": 170,
+      "lineType": "solid"
+    },
+    {
+      "id": "msg_check_resp",
+      "from": "db",
+      "to": "gateway",
+      "label": "3. Email is unique",
+      "y": 210,
+      "lineType": "dashed"
+    },
+    {
+      "id": "msg_db_begin",
+      "from": "gateway",
+      "to": "db",
+      "label": "4. BEGIN Transaction",
+      "y": 250,
+      "lineType": "solid"
+    },
+    {
+      "id": "msg_db_write",
+      "from": "gateway",
+      "to": "db",
+      "label": "5. INSERT user record",
+      "y": 290,
+      "lineType": "solid"
+    },
+    {
+      "id": "msg_db_commit",
+      "from": "gateway",
+      "to": "db",
+      "label": "6. COMMIT Transaction",
+      "y": 330,
+      "lineType": "solid"
+    },
+    {
+      "id": "msg_signup_resp",
+      "from": "gateway",
+      "to": "user",
+      "label": "7. 201 Created",
+      "y": 370,
+      "lineType": "dashed"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "gateway",
+      "start": 130,
+      "end": 370
+    },
+    {
+      "participant": "db",
+      "start": 170,
+      "end": 210
+    },
+    {
+      "participant": "db",
+      "start": 250,
+      "end": 330
+    }
+  ],
+  "groups": [
+    {
+      "id": "loop_signup",
+      "label": "Loop: User Signup Flow (Until Success)",
+      "participants": [
+        "user",
+        "gateway",
+        "db"
+      ],
+      "messageFrom": "msg_signup_req",
+      "messageTo": "msg_signup_resp"
+    },
+    {
+      "id": "db_transaction",
+      "label": "Transaction: Save User Data",
+      "participants": [
+        "gateway",
+        "db"
+      ],
+      "messageFrom": "msg_db_begin",
+      "messageTo": "msg_db_commit"
+    }
+  ]
+}
